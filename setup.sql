@@ -188,3 +188,53 @@ drop policy if exists "pro own select" on public.pro_users;
 create policy "pro own select" on public.pro_users for select to authenticated using ((select auth.uid()) = user_id);
 revoke all on public.pro_users from anon, authenticated;
 grant select on public.pro_users to authenticated;
+
+-- 8. Automatic Pro: Stripe tells the stripe-webhook function about payments and cancellations.
+alter table public.pro_users add column if not exists stripe_customer_id text;
+alter table public.pro_users add column if not exists stripe_subscription_id text;
+create index if not exists pro_users_sub_idx on public.pro_users(stripe_subscription_id);
+
+create or replace function public.activate_pro(p_user text, p_email text, p_customer text, p_subscription text)
+returns text
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare uid uuid;
+begin
+  begin
+    if p_user is not null then
+      select id into uid from auth.users where id = p_user::uuid;
+    end if;
+  exception when invalid_text_representation then
+    uid := null;
+  end;
+  if uid is null and p_email is not null then
+    select id into uid from auth.users where lower(email) = lower(trim(p_email)) limit 1;
+  end if;
+  if uid is null then
+    return 'no matching account for ' || coalesce(p_email, 'unknown email');
+  end if;
+  insert into public.pro_users(user_id, plan, stripe_customer_id, stripe_subscription_id, note)
+  values (uid, 'pro', p_customer, p_subscription, 'Stripe checkout')
+  on conflict (user_id) do update
+    set plan = 'pro', active_until = null,
+        stripe_customer_id = excluded.stripe_customer_id,
+        stripe_subscription_id = excluded.stripe_subscription_id;
+  return 'activated';
+end;
+$$;
+
+create or replace function public.deactivate_pro(p_subscription text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from public.pro_users where stripe_subscription_id = p_subscription;
+$$;
+
+revoke all on function public.activate_pro(text, text, text, text) from public, anon, authenticated;
+revoke all on function public.deactivate_pro(text) from public, anon, authenticated;
+grant execute on function public.activate_pro(text, text, text, text) to service_role;
+grant execute on function public.deactivate_pro(text) to service_role;

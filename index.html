@@ -838,7 +838,7 @@ function renderUpgrade(){
     </div>
     <p class="muted" style="font-size:14.5px">One extra job won from a follow-up pays for years of Closer.</p>
     ${session?`<a class="btn primary" style="min-height:54px;font-size:17px;text-decoration:none" href="${esc(payLink())}" target="_blank" rel="noopener">Upgrade to Pro</a>
-    <p class="muted" style="font-size:13.5px">You'll pay securely through Stripe. Use the same email as your Closer account (<b>${esc(session.user.email)}</b>). Pro turns on after your payment is confirmed, usually within a day.</p>
+    <p class="muted" style="font-size:13.5px">You'll pay securely through Stripe. Use the same email as your Closer account (<b>${esc(session.user.email)}</b>). Pro turns on by itself within a minute of paying. Come back to Closer when you're done.</p>
     <button class="btn" data-act="check-plan">I already paid. Check again</button>`
     :`<div class="banner"><span>Create a free account first, so your upgrade is linked to you.</span><button data-act="nav" data-v="settings">Create account</button></div>`}
   </div></div>`;
@@ -970,7 +970,7 @@ const A={
   'sms-link'(el){window.location.href=el.getAttribute('href')},
   'check-resp'(){checkApprovals().then(()=>toast('Checked. No new answers yet.')).catch(e=>toast(e.message))},
   'sign-up'(){doAuth('up')},
-  'check-plan'(){refreshPlan().then(()=>{render();if(!isPro)toast('Not active yet. If you just paid, it can take up to a day.')})},
+  'check-plan'(){refreshPlan().then(()=>{render();if(!isPro)toast('Not active yet. Wait a minute and try again. If it still isn\'t on, message support.')})},
   forgot(){sendReset()},
   'acct-delete'(){confirmDeleteAcct=true;render();const i=$('#del-confirm');if(i)i.focus()},
   'acct-delete-no'(){confirmDeleteAcct=false;render()},
