@@ -174,3 +174,17 @@ end;
 $$;
 revoke all on function public.bump_chat_usage(text, int, int) from public, anon, authenticated;
 grant execute on function public.bump_chat_usage(text, int, int) to service_role;
+
+-- 7. Closer Pro members. Only you (in the dashboard) can add rows; users can only read their own.
+create table if not exists public.pro_users (
+  user_id      uuid primary key references auth.users(id) on delete cascade,
+  plan         text not null default 'pro',
+  active_until date,
+  note         text,
+  created_at   timestamptz not null default now()
+);
+alter table public.pro_users enable row level security;
+drop policy if exists "pro own select" on public.pro_users;
+create policy "pro own select" on public.pro_users for select to authenticated using ((select auth.uid()) = user_id);
+revoke all on public.pro_users from anon, authenticated;
+grant select on public.pro_users to authenticated;

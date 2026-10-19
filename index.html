@@ -187,6 +187,7 @@ textarea.input{min-height:84px;resize:vertical}
 .hist div:first-child{border-top:0;padding-top:0}
 .logo-prev{width:72px;height:72px;border-radius:10px;border:1px solid var(--line);background:#fff;object-fit:contain}
 .filebtn{position:relative;overflow:hidden}
+.ck svg{width:18px;height:18px;vertical-align:-3px;color:var(--good)}
 .filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 @media (max-width:400px){.line-nums{grid-template-columns:60px 80px 1fr auto}.grid3{grid-template-columns:1fr 1fr}}
 @media (prefers-reduced-motion:no-preference){.view-in{animation:fade .18s ease-out}@keyframes fade{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}}
@@ -347,6 +348,7 @@ function renderHome(){
   let h=`<div class="stack view-in">
   <div><p class="muted">${esc(S.biz.name)}</p><h1>${greet}${S.biz.owner?', '+esc(first(S.biz.owner)):''}</h1></div>
   ${banners()}
+  ${planChip()}
   <div class="stats">
     <div class="stat"><b>${moneyShort(openVal)}</b><span>waiting on ${open.length} answer${open.length===1?'':'s'}</span></div>
     <div class="stat"><b>${moneyShort(wonVal)}</b><span>won this month</span></div>
@@ -513,6 +515,7 @@ function renderSettings(){
   const b=S.biz;
   return `<div class="stack view-in"><h1>Settings</h1>${banners()}
   ${renderAccount()}
+  ${cloudOK&&!S.sample?`<section class="sec"><h3>Plan</h3><div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span>${isPro?'<b>Closer Pro</b> · unlimited estimates':`<b>Free</b> · ${usedThisMonth()} of ${FREE_LIMIT} estimates this month`}</span><button class="btn sm ${isPro?'':'primary'}" data-act="nav" data-v="upgrade">${isPro?'Plan details':'Upgrade to Pro'}</button></div></section>`:''}
   <form id="bizform" class="stack" style="gap:12px" novalidate>
     <h3>Your business</h3>
     <div class="row" style="align-items:center">${b.logo?`<img class="logo-prev" src="${b.logo}" alt="Your logo">`:''}<label class="btn sm filebtn" style="flex:0 1 auto">${b.logo?'Change logo':'Add your logo'}<input type="file" id="logo-file" accept="image/*"></label>${b.logo?`<button class="btn danger sm" style="flex:0 1 auto" data-act="logo-remove">Remove</button>`:''}</div>
@@ -567,10 +570,14 @@ const SB_KEY='sb_publishable_GnIs8TH7qyCbAXikhlH1_g_SBP8laDB';
 const SKEY='closer.session';
 const cloudOK=!inFrame;
 let session=null,syncState='off',pushTimer=null,syncErr='',lastSynced=null,recoveryMode=false,confirmDeleteAcct=false;
+const PAY_LINK='https://buy.stripe.com/test_00wbJ09jXekkaGl7Ja4sE00';
+const FREE_LIMIT=5,PRO_PRICE='$12';
+let isPro=false;
 const PUBLIC_SITE='https://kamwebdes.github.io/closer/';
 const siteURL=()=>/^https?:$/.test(location.protocol)&&!/localhost$/.test(location.hostname)?location.origin+location.pathname.replace(/[^/]*$/,''):PUBLIC_SITE;
 try{session=JSON.parse(localStorage.getItem(SKEY)||'null')}catch(e){session=null}
 if(!cloudOK)session=null;
+isPro=!!(session&&S.planCache&&S.planCache.uid===session.user.id&&S.planCache.pro);
 function setSession(x){session=x;try{x?localStorage.setItem(SKEY,JSON.stringify(x)):localStorage.removeItem(SKEY)}catch(e){}}
 function fromTokenResp(d){return {access_token:d.access_token,refresh_token:d.refresh_token,expires_at:d.expires_at||Math.floor(Date.now()/1000)+(d.expires_in||3600),user:{id:d.user&&d.user.id,email:d.user&&d.user.email}}}
 async function rawFetch(path,opt){
@@ -625,6 +632,7 @@ async function firstSync(){
   }
   S.updatedAt=Date.now();saveLocal();await push();
   try{await checkApprovals()}catch(e){}
+  await refreshPlan();
 }
 async function syncNow(manual){
   if(!session||view==='edit')return;
@@ -638,6 +646,7 @@ async function syncNow(manual){
     }else if(pending||!remote){await push()}
     else{syncState='ok';lastSynced=Date.now();renderTop()}
     await checkApprovals();
+    const wasPro=isPro;await refreshPlan();if(wasPro!==isPro&&view!=='edit')render();
     if(manual)toast(syncState==='ok'?'Everything is backed up':syncErr||'Couldn\'t sync');
   }catch(e){syncState=e.offline?'offline':'error';syncErr=e.message;renderTop();if(manual)toast(e.message)}
 }
@@ -785,15 +794,66 @@ function shareCard(q){
   <button class="btn sm" data-act="share" data-id="${q.id}">Update link with latest version</button></div>`;
 }
 
+
+/* ---------- plan: free limit and Pro ---------- */
+function monthStartTs(){const d=new Date();return new Date(d.getFullYear(),d.getMonth(),1).getTime()}
+function usedThisMonth(){const m=monthStartTs();return S.quotes.filter(q=>q.created>=m).length}
+function limitsOn(){return cloudOK&&!S.sample&&!isPro}
+function canCreate(){return !limitsOn()||usedThisMonth()<FREE_LIMIT}
+async function refreshPlan(){
+  if(!session){isPro=false;return}
+  try{
+    const rows=await api('/rest/v1/pro_users?select=active_until&user_id=eq.'+encodeURIComponent(session.user.id));
+    const r=rows&&rows[0];
+    const was=isPro;
+    isPro=!!(r&&(!r.active_until||Date.parse(r.active_until)+DAY>Date.now()));
+    S.planCache={uid:session.user.id,pro:isPro};saveLocal();
+    if(isPro&&!was){toast('Closer Pro is active. Thanks for upgrading!')}
+  }catch(e){}
+}
+function payLink(){
+  let u=PAY_LINK;const p=[];
+  if(session){p.push('prefilled_email='+encodeURIComponent(session.user.email));p.push('client_reference_id='+encodeURIComponent(session.user.id))}
+  return p.length?u+'?'+p.join('&'):u;
+}
+function planChip(){
+  if(!cloudOK||S.sample)return '';
+  if(isPro)return `<div class="banner" style="background:var(--good-soft)"><span><b>Closer Pro</b> · unlimited estimates</span></div>`;
+  const u=usedThisMonth(),left=Math.max(0,FREE_LIMIT-u);
+  return `<div class="banner" style="${left===0?'background:var(--warn-soft)':''}"><span>Free plan: <b>${u} of ${FREE_LIMIT}</b> estimates used this month.${left===0?' You\'ve hit the limit.':''}</span><button data-act="nav" data-v="upgrade">Upgrade</button></div>`;
+}
+function renderUpgrade(){
+  const u=usedThisMonth();
+  let h=`<div class="stack view-in"><div><button class="linkbtn" data-act="nav" data-v="home" style="display:inline-flex;align-items:center;gap:4px">${ic('back')}Home</button>
+  <h1 style="margin-top:4px">Closer Pro</h1></div>`;
+  if(isPro){return h+`<div class="card stack" style="gap:10px;border-left:4px solid var(--good)"><b>You're on Closer Pro.</b><p class="muted">Unlimited estimates, approval links and automatic backup. Thanks for supporting Closer.</p><p class="muted" style="font-size:14px">To change or cancel your plan, send a message from the support page.</p></div></div>`}
+  h+=`${u>=FREE_LIMIT?`<div class="notice">You've used all ${FREE_LIMIT} free estimates this month. Upgrade to keep going, or wait until the 1st for ${FREE_LIMIT} more.</div>`:''}
+  <div class="card stack" style="gap:14px">
+    <div style="display:flex;align-items:baseline;gap:8px"><span style="font-family:var(--f-display);font-size:44px;font-weight:700;line-height:1">${PRO_PRICE}</span><span class="muted">per month · cancel anytime</span></div>
+    <div class="stack" style="gap:8px;font-size:16px">
+      <div><span class="ck">${ic('check')}</span> Unlimited estimates <span class="muted">(free plan: ${FREE_LIMIT} a month)</span></div>
+      <div><span class="ck">${ic('check')}</span> Approval links customers tap to approve</div>
+      <div><span class="ck">${ic('check')}</span> Automatic backup across your devices</div>
+      <div><span class="ck">${ic('check')}</span> Follow-up reminders with ready-to-send texts</div>
+    </div>
+    <p class="muted" style="font-size:14.5px">One extra job won from a follow-up pays for years of Closer.</p>
+    ${session?`<a class="btn primary" style="min-height:54px;font-size:17px;text-decoration:none" href="${esc(payLink())}" target="_blank" rel="noopener">Upgrade to Pro</a>
+    <p class="muted" style="font-size:13.5px">You'll pay securely through Stripe. Use the same email as your Closer account (<b>${esc(session.user.email)}</b>). Pro turns on after your payment is confirmed, usually within a day.</p>
+    <button class="btn" data-act="check-plan">I already paid. Check again</button>`
+    :`<div class="banner"><span>Create a free account first, so your upgrade is linked to you.</span><button data-act="nav" data-v="settings">Create account</button></div>`}
+  </div></div>`;
+  return h;
+}
+
 /* ---------- nav & render ---------- */
 function renderNav(){
   const items=[['home','Home','home'],['quotes','Estimates','list'],['new','New','plus'],['settings','Settings','gear']];
-  const cur=view==='view'?'quotes':view==='edit'?'new':view;
+  const cur=view==='view'?'quotes':view==='edit'?'new':view==='upgrade'?'home':view;
   $('#navin').innerHTML=items.map(([k,l,i])=>k==='new'?`<button class="newbtn" data-act="new" ${cur==='new'?'aria-current="page"':''}><span class="plus">${ic('plus')}</span>${l}</button>`:`<button data-act="nav" data-v="${k}" ${cur===k?'aria-current="page"':''}>${ic(i)}${l}</button>`).join('');
 }
 function render(){
   const v=$('#view');
-  v.innerHTML=view==='home'?renderHome():view==='quotes'?renderQuotes():view==='view'?renderView():view==='edit'?renderEdit():renderSettings();
+  v.innerHTML=view==='home'?renderHome():view==='quotes'?renderQuotes():view==='view'?renderView():view==='edit'?renderEdit():view==='upgrade'?renderUpgrade():renderSettings();
   if(view==='quotes')renderQList();
   if(view==='edit'){renderLines();renderPricing();renderSuggest();renderEditMsg()}
   renderNav();updateBadge();renderTop();
@@ -821,6 +881,7 @@ const A={
   nav(el){go(el.dataset.v)},
   open(el){go('view',el.dataset.id)},
   new(){
+    if(!(S.editing&&S.editing.dirty)&&!canCreate()){go('upgrade');return}
     if(S.editing&&S.editing.dirty){draft=S.editing.draft;dirty=true;go('edit');toast('Finish or throw away this estimate first.');return}
     draft=newDraft();dirty=false;S.editing={draft,dirty};save();go('edit')},
   resume(){draft=S.editing.draft;dirty=!!S.editing.dirty;go('edit')},
@@ -861,6 +922,7 @@ const A={
       Object.assign(q,{client:d.client,title:d.title,lines:d.lines,discount:+d.discount||0,discountType:d.discountType,taxRate:+d.taxRate||0,depositType:d.depositType,depositPct:+d.depositPct||0,depositAmt:+d.depositAmt||0,notes:d.notes});
       id=q.id;
     }else{
+      if(!canCreate()){persistDraft();go('upgrade');toast('Your estimate is saved as a draft. Upgrade to finish it.');return}
       let num=d.num;if(S.quotes.some(q=>q.num===num))num=maxNum()+1;
       const q={id:uid(),num,client:d.client,title:d.title,lines:d.lines,discount:+d.discount||0,discountType:d.discountType,taxRate:+d.taxRate||0,depositType:d.depositType,depositPct:+d.depositPct||0,depositAmt:+d.depositAmt||0,notes:d.notes,status:'draft',created:Date.now(),sentAt:null,followUps:[],decidedAt:null,snoozeUntil:null,history:[]};
       S.quotes.push(q);S.biz.nextNum=Math.max(S.biz.nextNum,num+1);id=q.id;
@@ -880,6 +942,7 @@ const A={
   'toggle-inv'(){asInvoice=!asInvoice;render()},
   print(){try{window.print()}catch(e){}},
   duplicate(el){
+    if(!canCreate()){go('upgrade');return}
     if(S.editing&&S.editing.dirty){draft=S.editing.draft;dirty=true;go('edit');toast('Finish or throw away this estimate first.');return}
     const q=byId(el.dataset.id);draft=newDraft();Object.assign(draft,JSON.parse(JSON.stringify({title:q.title,lines:q.lines,discount:q.discount,discountType:q.discountType,taxRate:q.taxRate,depositType:q.depositType,depositPct:q.depositPct,depositAmt:q.depositAmt,notes:q.notes})));
     draft.lines.forEach(l=>l.id=uid());dirty=true;S.editing={draft,dirty};save();go('edit');toast('Copied the line items. Add the new customer.')},
@@ -907,6 +970,7 @@ const A={
   'sms-link'(el){window.location.href=el.getAttribute('href')},
   'check-resp'(){checkApprovals().then(()=>toast('Checked. No new answers yet.')).catch(e=>toast(e.message))},
   'sign-up'(){doAuth('up')},
+  'check-plan'(){refreshPlan().then(()=>{render();if(!isPro)toast('Not active yet. If you just paid, it can take up to a day.')})},
   forgot(){sendReset()},
   'acct-delete'(){confirmDeleteAcct=true;render();const i=$('#del-confirm');if(i)i.focus()},
   'acct-delete-no'(){confirmDeleteAcct=false;render()},
@@ -936,7 +1000,7 @@ document.addEventListener('change',ev=>{
   if(t.id==='restore-file'&&t.files[0]){readFile(t.files[0],txt=>{$('#restore-text').value=txt;A['restore-check']()})}
   if(t.type==='checkbox'&&t.dataset.lf&&draft){const id=t.closest('[data-line]').dataset.line;const l=draft.lines.find(x=>x.id===id);if(l){l.taxable=t.checked;touch();renderTotals()}}
 });
-async function signOutReq(){try{if(session)await rawFetch('/auth/v1/logout',{method:'POST',token:session.access_token})}catch(e){}setSession(null);syncState='off';render();toast('Signed out. Your estimates stay on this phone.')}
+async function signOutReq(){try{if(session)await rawFetch('/auth/v1/logout',{method:'POST',token:session.access_token})}catch(e){}setSession(null);syncState='off';isPro=false;render();toast('Signed out. Your estimates stay on this phone.')}
 document.addEventListener('submit',ev=>{
   ev.preventDefault();const f=ev.target;
   if(f.id==='authform'){doAuth('in');return}
