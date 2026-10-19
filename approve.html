@@ -121,7 +121,7 @@ function render(){
       <p class="muted" style="font-size:13.5px;margin:0">Questions first? Contact ${esc(b.name)}${b.phone?' at <b>'+esc(b.phone)+'</b>':''}.</p>
     </form>`;
   }
-  app.innerHTML=`<h1>Estimate from ${esc(b.name)}</h1>${docHTML(d)}${respond}<p class="foot">Sent with Closer</p>`;
+  app.innerHTML=`<h1>Estimate from ${esc(b.name)}</h1>${docHTML(d)}${respond}<p class="foot">Sent with Closer · <a href="privacy.html" style="color:inherit">Privacy</a></p>`;
   const f=$('#resp');if(!f)return;
   f.addEventListener('submit',e=>{e.preventDefault();send('approved')});
   $('#no').addEventListener('click',()=>{

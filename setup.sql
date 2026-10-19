@@ -90,3 +90,57 @@ revoke all on function public.get_shared_estimate(text) from public;
 revoke all on function public.respond_shared_estimate(text, text, text) from public;
 grant execute on function public.get_shared_estimate(text) to anon, authenticated;
 grant execute on function public.respond_shared_estimate(text, text, text) to anon, authenticated;
+
+-- 4. Let people delete their own account and everything in it (Apple requires this).
+create or replace function public.delete_my_account()
+returns void
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Sign in first.';
+  end if;
+  delete from public.shared_estimates where user_id = auth.uid();
+  delete from public.closer_data where user_id = auth.uid();
+  delete from auth.users where id = auth.uid();
+end;
+$$;
+revoke all on function public.delete_my_account() from public, anon;
+grant execute on function public.delete_my_account() to authenticated;
+
+-- 5. Messages from the support page. Read them in Table Editor > support_messages.
+create table if not exists public.support_messages (
+  id         bigint generated always as identity primary key,
+  name       text check (name is null or length(name) <= 80),
+  email      text not null check (length(email) between 5 and 200),
+  message    text not null check (length(message) between 5 and 4000),
+  created_at timestamptz not null default now()
+);
+alter table public.support_messages enable row level security;
+revoke all on public.support_messages from anon, authenticated;
+
+create or replace function public.submit_support(p_name text, p_email text, p_message text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_email is null or p_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' or length(p_email) > 200 then
+    raise exception 'Enter a valid email address.';
+  end if;
+  if length(coalesce(trim(p_message), '')) < 5 or length(p_message) > 4000 then
+    raise exception 'Write a message of at least a few words.';
+  end if;
+  if (select count(*) from public.support_messages
+      where email = lower(trim(p_email)) and created_at > now() - interval '1 hour') >= 5 then
+    raise exception 'You''ve sent several messages already. Please wait a bit before sending another.';
+  end if;
+  insert into public.support_messages(name, email, message)
+  values (nullif(left(trim(coalesce(p_name, '')), 80), ''), lower(trim(p_email)), trim(p_message));
+end;
+$$;
+revoke all on function public.submit_support(text, text, text) from public;
+grant execute on function public.submit_support(text, text, text) to anon, authenticated;

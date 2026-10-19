@@ -553,6 +553,7 @@ function renderSettings(){
       <div id="restore-msg"></div>
     </div>
   </section>
+  ${cloudOK?`<section class="sec"><h3>Help</h3><div class="row"><a class="btn sm" href="support.html">Get help or send feedback</a><a class="btn sm" href="privacy.html">Privacy policy</a></div></section>`:''}
   <section class="sec"><h3>Start over</h3>
     <div class="row"><button class="btn" data-act="sample">Load examples</button><button class="btn danger" data-act="clear">Delete all estimates</button></div>
     <div id="clear-msg"></div>
@@ -565,7 +566,8 @@ const SB_URL='https://hpzkqkzezexadxtpvbgq.supabase.co';
 const SB_KEY='sb_publishable_GnIs8TH7qyCbAXikhlH1_g_SBP8laDB';
 const SKEY='closer.session';
 const cloudOK=!inFrame;
-let session=null,syncState='off',pushTimer=null,syncErr='',lastSynced=null;
+let session=null,syncState='off',pushTimer=null,syncErr='',lastSynced=null,recoveryMode=false,confirmDeleteAcct=false;
+const siteURL=()=>location.origin+location.pathname.replace(/[^/]*$/,'');
 try{session=JSON.parse(localStorage.getItem(SKEY)||'null')}catch(e){session=null}
 if(!cloudOK)session=null;
 function setSession(x){session=x;try{x?localStorage.setItem(SKEY,JSON.stringify(x)):localStorage.removeItem(SKEY)}catch(e){}}
@@ -680,7 +682,16 @@ function renderTop(){
 }
 function renderAccount(){
   if(!cloudOK)return `<section class="sec"><h3>Account and backup</h3><div class="card muted" style="font-size:14.5px">Accounts, automatic backup and customer approval links work in the installed app at your website, not in this preview.</div></section>`;
-  if(session)return `<section class="sec"><h3>Account and backup</h3><div class="card stack" style="gap:10px"><p>Signed in as <b>${esc(session.user.email)}</b></p><p class="muted" style="font-size:14.5px">${esc(syncLine())}</p><div class="row"><button class="btn sm" data-act="sync-now">Sync now</button><button class="btn sm danger" data-act="sign-out">Sign out</button></div></div></section>`;
+  if(session&&recoveryMode)return `<section class="sec"><h3>Choose a new password</h3>
+  <form id="passform" class="card stack" style="gap:10px" novalidate>
+    <p class="muted" style="font-size:14.5px">Signed in as <b>${esc(session.user.email)}</b>. Pick a new password for your account.</p>
+    <div class="field"><label for="np">New password</label><input class="input" id="np" type="password" autocomplete="new-password" minlength="8"></div>
+    <div id="pass-msg"></div>
+    <button class="btn primary" type="submit">Save new password</button>
+  </form></section>`;
+  if(session)return `<section class="sec"><h3>Account and backup</h3><div class="card stack" style="gap:10px"><p>Signed in as <b>${esc(session.user.email)}</b></p><p class="muted" style="font-size:14.5px">${esc(syncLine())}</p><div class="row"><button class="btn sm" data-act="sync-now">Sync now</button><button class="btn sm" data-act="sign-out">Sign out</button></div>
+  ${confirmDeleteAcct?`<div class="confirm"><b>Delete your account for good?</b><span class="muted" style="font-size:14.5px">This permanently deletes your account, every estimate and saved item, and turns off any approval links you've sent. It can't be undone. Type DELETE to confirm.</span><input class="input" id="del-confirm" autocomplete="off" placeholder="DELETE"><div id="del-msg"></div><div class="row"><button class="btn danger" data-act="acct-delete-yes">Delete my account</button><button class="btn" data-act="acct-delete-no">Keep my account</button></div></div>`:`<button class="linkbtn" style="color:var(--bad);align-self:flex-start" data-act="acct-delete">Delete account</button>`}
+  </div></section>`;
   return `<section class="sec"><h3>Account and backup</h3>
   <form id="authform" class="card stack" style="gap:10px" novalidate>
     <p class="muted" style="font-size:14.5px">Sign in to back up your estimates automatically, use Closer on more than one device, and send customers a link to approve estimates.</p>
@@ -688,8 +699,53 @@ function renderAccount(){
     <div class="field"><label for="a-pass">Password</label><input class="input" id="a-pass" type="password" autocomplete="current-password" minlength="8"></div>
     <div id="auth-msg"></div>
     <div class="row"><button class="btn primary" type="submit" data-mode="in">Sign in</button><button class="btn" type="button" data-act="sign-up">Create account</button></div>
+    <button class="linkbtn" type="button" style="align-self:flex-start" data-act="forgot">Forgot your password?</button>
+    <p class="muted" style="font-size:13px">By creating an account you agree to the <a href="privacy.html" style="color:inherit">privacy policy</a>.</p>
   </form></section>`;
 }
+
+function friendlyLinkErr(m){m=String(m||'');if(/expired|invalid/i.test(m))return 'That email link has expired or was already used. Request a new one in Settings.';return m.replace(/\+/g,' ')}
+async function handleAuthHash(){
+  if(!cloudOK||!location.hash||location.hash.length<2)return false;
+  const p=new URLSearchParams(location.hash.slice(1));
+  const clean=()=>{try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}};
+  if(p.get('error')||p.get('error_description')){clean();view='settings';render();toast(friendlyLinkErr(p.get('error_description')||p.get('error')));return true}
+  const at=p.get('access_token');if(!at)return false;
+  clean();
+  try{
+    const u=await rawFetch('/auth/v1/user',{token:at});
+    setSession({access_token:at,refresh_token:p.get('refresh_token'),expires_at:+p.get('expires_at')||Math.floor(Date.now()/1000)+(+p.get('expires_in')||3600),user:{id:u.id,email:u.email}});
+    if(p.get('type')==='recovery'){recoveryMode=true;view='settings';render();toast('Choose a new password below.');return true}
+    await firstSync();view=S.biz.name?'home':'settings';render();toast('Email confirmed. You\'re signed in and backed up.');return true;
+  }catch(e){view='settings';render();toast(e.message);return true}
+}
+async function sendReset(){
+  const email=($('#a-email').value||'').trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)){authMsg('Type your email above, then tap "Forgot your password?" again.',true);return}
+  authBusy(true);
+  try{await rawFetch('/auth/v1/recover?redirect_to='+encodeURIComponent(siteURL()),{method:'POST',body:{email}});authMsg('If that email has an account, we sent a link to reset the password. Check your spam folder too.')}
+  catch(e){authMsg(friendlyAuth(e.message),true)}
+  authBusy(false);
+}
+async function savePassword(){
+  const np=$('#np').value||'',el=$('#pass-msg');
+  if(np.length<8){el.innerHTML='<p class="err">Use at least 8 characters.</p>';return}
+  try{await api('/auth/v1/user',{method:'PUT',body:{password:np}});recoveryMode=false;render();toast('Password updated')}
+  catch(e){el.innerHTML=`<p class="err">${esc(friendlyAuth(e.message))}</p>`}
+}
+async function deleteAccount(){
+  const v=($('#del-confirm').value||'').trim(),el=$('#del-msg');
+  if(v!=='DELETE'){el.innerHTML='<p class="err">Type DELETE in capital letters to confirm.</p>';return}
+  document.querySelectorAll('[data-act="acct-delete-yes"],[data-act="acct-delete-no"]').forEach(b=>b.disabled=true);
+  try{
+    await api('/rest/v1/rpc/delete_my_account',{method:'POST',body:{}});
+    setSession(null);syncState='off';confirmDeleteAcct=false;
+    try{localStorage.removeItem(KEY)}catch(e){}
+    S=normalize({v:1,sample:false,editing:null,biz:{},items:[],quotes:[]});draft=null;dirty=false;saveLocal();
+    go('home');toast('Your account and all its estimates were deleted.');
+  }catch(e){document.querySelectorAll('[data-act="acct-delete-yes"],[data-act="acct-delete-no"]').forEach(b=>b.disabled=false);el.innerHTML=`<p class="err">${esc(e.message)}</p>`}
+}
+
 function authMsg(t,bad){const el=$('#auth-msg');if(el)el.innerHTML=t?`<p class="${bad?'err':'muted'}" style="font-size:14.5px">${esc(t)}</p>`:''}
 function authBusy(b){document.querySelectorAll('#authform button').forEach(x=>x.disabled=b)}
 async function doAuth(mode){
@@ -698,13 +754,13 @@ async function doAuth(mode){
   if(pass.length<8){authMsg('Use a password with at least 8 characters.',true);return}
   authBusy(true);authMsg(mode==='up'?'Creating your account…':'Signing in…');
   try{
-    if(mode==='up'){const r=await signUpReq(email,pass);if(r==='confirm'){authBusy(false);authMsg('Check your email and tap the confirmation link, then come back and sign in.');return}}
+    if(mode==='up'){const r=await signUpReq(email,pass);if(r==='confirm'){authBusy(false);authMsg('Almost done. We emailed you a link to confirm your address. Tap it and you\'ll be signed in. Check your spam folder if you don\'t see it.');return}}
     else await signInReq(email,pass);
     render();toast(S.biz.name?'Signed in. Your estimates are backed up.':'Signed in. Add your business details below.');
   }catch(e){authBusy(false);authMsg(friendlyAuth(e.message),true)}
 }
 async function signInReq(email,password){const d=await rawFetch('/auth/v1/token?grant_type=password',{method:'POST',body:{email,password}});setSession(fromTokenResp(d));await firstSync()}
-async function signUpReq(email,password){const d=await rawFetch('/auth/v1/signup',{method:'POST',body:{email,password}});if(d&&d.access_token){setSession(fromTokenResp(d));await firstSync();return 'in'}if(d&&d.session&&d.session.access_token){setSession(fromTokenResp(Object.assign({user:d.user},d.session)));await firstSync();return 'in'}return 'confirm'}
+async function signUpReq(email,password){const d=await rawFetch('/auth/v1/signup?redirect_to='+encodeURIComponent(siteURL()),{method:'POST',body:{email,password}});if(d&&d.access_token){setSession(fromTokenResp(d));await firstSync();return 'in'}if(d&&d.session&&d.session.access_token){setSession(fromTokenResp(Object.assign({user:d.user},d.session)));await firstSync();return 'in'}return 'confirm'}
 async function shareQuote(q,btn){
   if(!session){go('settings');toast('Sign in first to send approval links.');return}
   if(!S.biz.name){go('settings');toast('Add your business name first. Customers will see it.');return}
@@ -850,6 +906,10 @@ const A={
   'sms-link'(el){window.location.href=el.getAttribute('href')},
   'check-resp'(){checkApprovals().then(()=>toast('Checked. No new answers yet.')).catch(e=>toast(e.message))},
   'sign-up'(){doAuth('up')},
+  forgot(){sendReset()},
+  'acct-delete'(){confirmDeleteAcct=true;render();const i=$('#del-confirm');if(i)i.focus()},
+  'acct-delete-no'(){confirmDeleteAcct=false;render()},
+  'acct-delete-yes'(){deleteAccount()},
   'sync-now'(){syncNow(true)},
   'sign-out'(){signOutReq()},
   undo(){if(undoFn){const f=undoFn;undoFn=null;$('#toast').hidden=true;f()}}
@@ -879,6 +939,7 @@ async function signOutReq(){try{if(session)await rawFetch('/auth/v1/logout',{met
 document.addEventListener('submit',ev=>{
   ev.preventDefault();const f=ev.target;
   if(f.id==='authform'){doAuth('in');return}
+  if(f.id==='passform'){savePassword();return}
   if(f.id==='bizform'){
     const v=id=>$(id).value.trim(),n=id=>parseFloat($(id).value);const err=$('#biz-err');
     if(!v('#b-name')){err.textContent='Add your business name.';return}
@@ -902,7 +963,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 window.addEventListener('online',()=>{if(session)syncNow()});
 
 render();
-if(session)syncNow();
+handleAuthHash().then(h=>{if(!h&&session)syncNow()});
 })();
 </script>
 <script>

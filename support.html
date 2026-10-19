@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Closer Support</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700&display=swap">
+<style>
+:root{--bg:#F3F4F6;--surface:#fff;--line:#DCE0E6;--fg:#131921;--muted:#596373;--accent:#DB5410;--good:#1D8A57;--bad:#BF3F39;
+  --f-display:"Barlow Condensed","Arial Narrow",sans-serif;--f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.55;
+  padding:max(20px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(32px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.wrap{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+a{color:var(--accent)}
+.back{font-weight:600;text-decoration:none}
+h1{font-family:var(--f-display);font-size:36px;line-height:1.05;margin:0;text-wrap:balance}
+h2{font-family:var(--f-display);font-size:23px;margin:10px 0 0}
+p,ul{margin:0}ul{padding-left:22px;display:flex;flex-direction:column;gap:6px}
+.muted{color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px}
+label{font-size:14px;font-weight:600;color:var(--muted)}
+.input{width:100%;min-height:50px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;font:inherit;color:inherit}
+textarea.input{min-height:140px;resize:vertical}
+.input:focus{border-color:var(--accent);outline:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{min-height:52px;border-radius:12px;border:1px solid var(--accent);background:var(--accent);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.btn:disabled{opacity:.5}
+.err{color:var(--bad);font-size:15px}
+.ok{border-left:5px solid var(--good)}
+.field{display:flex;flex-direction:column;gap:5px}
+details{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+summary{font-weight:600;cursor:pointer}
+details p{margin-top:8px;color:var(--muted)}
+</style></head><body><div class="wrap"><a class="back" href="./">← Back to Closer</a>
+<h1>Help and support</h1>
+<p class="muted">Quick answers first. If you still need help, send us a message below.</p>
+<details><summary>Do I need an account?</summary><p>No. Closer works without one, and your estimates stay on your phone. An account backs them up, keeps them in sync across devices, and lets you send customers approval links.</p></details>
+<details><summary>How do approval links work?</summary><p>Open an estimate and tap Send approval link, then text the message to your customer. They see a clean copy of the estimate, type their name, and tap Approve or Decline. Closer marks the estimate won or lost on its own.</p></details>
+<details><summary>I changed an estimate after sending the link.</summary><p>Open the estimate and tap "Update link with latest version." Your customer sees the new version at the same link.</p></details>
+<details><summary>Why isn't some of my tax showing?</summary><p>Lines with "Taxable" unchecked aren't taxed. Many states tax materials but not labor. Check your state's rules and set each line to match.</p></details>
+<details><summary>I forgot my password.</summary><p>In Settings, type your email in the sign-in form and tap "Forgot your password?" We'll email you a link to choose a new one.</p></details>
+<details><summary>How do I delete my account?</summary><p>Settings, then Account and backup, then Delete account. This permanently removes your account and every estimate in it.</p></details>
+<form class="card" id="f" novalidate>
+<h2 style="margin:0">Send us a message</h2>
+<div class="field"><label for="n">Your name</label><input class="input" id="n" autocomplete="name" maxlength="80"></div>
+<div class="field"><label for="e">Email, so we can reply</label><input class="input" id="e" type="email" autocomplete="email" inputmode="email" maxlength="200"></div>
+<div class="field"><label for="m">What do you need help with?</label><textarea class="input" id="m" maxlength="4000"></textarea></div>
+<p class="err" id="err" role="alert"></p>
+<button class="btn" type="submit" id="send">Send message</button>
+</form>
+<p class="muted" style="font-size:14px">See how we handle your information in our <a href="privacy.html">privacy policy</a>.</p>
+<script>
+(function(){
+const SB_URL='https://hpzkqkzezexadxtpvbgq.supabase.co',SB_KEY='sb_publishable_GnIs8TH7qyCbAXikhlH1_g_SBP8laDB';
+const f=document.getElementById('f'),err=document.getElementById('err'),btn=document.getElementById('send');
+f.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const name=document.getElementById('n').value.trim(),email=document.getElementById('e').value.trim(),msg=document.getElementById('m').value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)){err.textContent='Enter a valid email so we can reply.';return}
+  if(msg.length<5){err.textContent='Tell us a little more about what you need.';return}
+  err.textContent='';btn.disabled=true;btn.textContent='Sending…';
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/rpc/submit_support',{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_name:name,p_email:email,p_message:msg})});
+    if(!r.ok){let m='';try{m=(await r.json()).message||''}catch(x){}throw new Error(m||'Something went wrong. Please try again.')}
+    f.outerHTML='<div class="card ok"><h2 style="margin:0">Message sent</h2><p>Thanks. We\'ll reply to '+email.replace(/[<>&"]/g,'')+' as soon as we can.</p></div>';
+  }catch(x){btn.disabled=false;btn.textContent='Send message';err.textContent=/fetch|network/i.test(x.message)?'No connection. Check your internet and try again.':x.message}
+});
+})();
+</script>
+</div></body></html>
