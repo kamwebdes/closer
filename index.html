@@ -567,7 +567,8 @@ const SB_KEY='sb_publishable_GnIs8TH7qyCbAXikhlH1_g_SBP8laDB';
 const SKEY='closer.session';
 const cloudOK=!inFrame;
 let session=null,syncState='off',pushTimer=null,syncErr='',lastSynced=null,recoveryMode=false,confirmDeleteAcct=false;
-const siteURL=()=>location.origin+location.pathname.replace(/[^/]*$/,'');
+const PUBLIC_SITE='https://kamwebdes.github.io/closer/';
+const siteURL=()=>/^https?:$/.test(location.protocol)&&!/localhost$/.test(location.hostname)?location.origin+location.pathname.replace(/[^/]*$/,''):PUBLIC_SITE;
 try{session=JSON.parse(localStorage.getItem(SKEY)||'null')}catch(e){session=null}
 if(!cloudOK)session=null;
 function setSession(x){session=x;try{x?localStorage.setItem(SKEY,JSON.stringify(x)):localStorage.removeItem(SKEY)}catch(e){}}
@@ -654,7 +655,7 @@ async function checkApprovals(){
   if(msgs.length){save();if(view!=='edit')render();toast(msgs.join(' · '))}
 }
 function randomToken(){const b=new Uint8Array(18);crypto.getRandomValues(b);return btoa(String.fromCharCode.apply(null,b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
-function approveLink(t){return new URL('approve.html?t='+t,location.href).href}
+function approveLink(t){return siteURL()+'approve.html?t='+t}
 function linkMsg(q){return `Hi ${first(q.client.name)}, here's your estimate #${q.num} for ${q.title}: ${money(calc(q).total)} total. You can look it over and approve it here: ${approveLink(q.shareToken)} – ${sig()}, ${S.biz.name}`}
 function snapshot(q){
   const t=calc(q);

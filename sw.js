@@ -1,5 +1,5 @@
 // Closer offline support. Bump VERSION whenever you upload changed files so phones pick them up.
-const VERSION = 'closer-v2';
+const VERSION = 'closer-v3';
 const SHELL = ['./', 'index.html', 'approve.html', 'privacy.html', 'support.html', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
