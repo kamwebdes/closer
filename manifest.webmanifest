@@ -2,7 +2,7 @@
   "name": "Closer Estimates",
   "short_name": "Closer",
   "description": "Estimates that get answered. Build quotes on your phone and never forget a follow-up.",
-  "start_url": "./",
+  "start_url": "app.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

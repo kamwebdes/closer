@@ -3,1038 +3,333 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F3F4F6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0E1217" media="(prefers-color-scheme: dark)">
-<meta name="description" content="Estimates that get answered. Build quotes on your phone and never forget a follow-up.">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Closer">
+<title>Closer: Estimates that get answered</title>
+<meta name="description" content="Build estimates on your phone, text customers a link to approve them, and get reminded to follow up. Free for 5 estimates a month.">
+<meta name="theme-color" content="#F4F2EE">
+<meta property="og:title" content="Closer: Estimates that get answered">
+<meta property="og:description" content="Build estimates on your phone, text customers a link to approve, and never forget a follow-up.">
+<meta property="og:image" content="https://kamwebdes.github.io/closer/icons/app-store-1024.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<style>
-:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
-body{margin:0}img{max-width:100%}[hidden]{display:none!important}html{-webkit-text-size-adjust:100%}
-@media print{.top,.nav,.toast,.row,.stickybar,.banner,.notice,.btn,.sec-head,p.muted,.linkbtn,.pill,h1{display:none!important}.app{padding:0}.doc-wrap{border:0;overflow:visible}body{background:#fff;padding:0}}
-</style>
-<title>Closer Estimates</title>
+<script>
+// Returning users and email sign-in links go straight to the app.
+(function(){
+  var h=location.hash||'';
+  if(/access_token=|error_description=|type=recovery|type=signup/.test(h)){location.replace('app.html'+h);return}
+  if(/[?&]home\b/.test(location.search))return;
+  try{
+    var s=localStorage.getItem('closer.session');
+    var d=JSON.parse(localStorage.getItem('closer.v1')||'null');
+    if(s||(d&&d.sample===false))location.replace('app.html');
+  }catch(e){}
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
 <style>
-/* Layout: one-column field tool for a phone on a job site. Big targets, high contrast, money always visible. The estimate itself is white paper in both themes. */
+/* Layout: one long scrolling page. Paper-white bands, ink type, one orange accent. Phone screenshots carry the proof. */
 :root{
-  --bg:#F3F4F6; --surface:#FFFFFF; --raised:#ECEEF2; --line:#DCE0E6; --fg:#131921; --muted:#596373; --dim:#8892A1;
-  --accent:#DB5410; --accent-ink:#FFFFFF; --accent-soft:#DB54101A;
-  --good:#1D8A57; --good-soft:#1D8A571A; --warn:#A86F12; --warn-soft:#C9861A22; --bad:#BF3F39; --bad-soft:#BF3F391A; --info:#2D66D0; --info-soft:#2D66D01A;
-  --paper:#FFFFFF; --paper-ink:#131921; --paper-muted:#5E6878; --paper-line:#E1E4E9;
+  --bg:#F4F2EE; --paper:#FFFFFF; --band:#ECE9E3; --ink:#131921; --muted:#56606E; --line:#DDD8D0;
+  --accent:#DB5410; --accent-dark:#B8430A; --accent-soft:#DB541014; --good:#1D8A57;
   --f-display:"Barlow Condensed","Arial Narrow",ui-sans-serif,system-ui,sans-serif;
   --f-body:"Barlow",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
-  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0E1217; --surface:#161B22; --raised:#1D232B; --line:#2A313B; --fg:#E8ECF1; --muted:#A1AAB7; --dim:#6F7886;
-  --accent:#FF7A2E; --accent-ink:#1A0D04; --accent-soft:#FF7A2E22;
-  --good:#3EC285; --good-soft:#3EC28522; --warn:#E3AA3E; --warn-soft:#E3AA3E22; --bad:#F06B64; --bad-soft:#F06B6422; --info:#6E9DFF; --info-soft:#6E9DFF22;
-  color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#0E1217; --surface:#161B22; --raised:#1D232B; --line:#2A313B; --fg:#E8ECF1; --muted:#A1AAB7; --dim:#6F7886;
-  --accent:#FF7A2E; --accent-ink:#1A0D04; --accent-soft:#FF7A2E22;
-  --good:#3EC285; --good-soft:#3EC28522; --warn:#E3AA3E; --warn-soft:#E3AA3E22; --bad:#F06B64; --bad-soft:#F06B6422; --info:#6E9DFF; --info-soft:#6E9DFF22;
-  color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
-button,input,select,textarea{font:inherit;color:inherit}
-button{cursor:pointer}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.app{max-width:620px;margin:0 auto;padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
-h1,h2,h3{margin:0;text-wrap:balance}
-h1{font-family:var(--f-display);font-weight:700;font-size:32px;letter-spacing:.005em;line-height:1.05}
-h2{font-family:var(--f-display);font-weight:700;font-size:22px;letter-spacing:.01em}
-h3{font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:18px;line-height:1.55;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);margin:0;line-height:1.02;letter-spacing:.005em;text-wrap:balance}
+h1{font-size:clamp(44px,8vw,84px);font-weight:700}
+h2{font-size:clamp(34px,5.4vw,54px);font-weight:700}
+h3{font-size:26px;font-weight:700}
 p{margin:0}
-.muted{color:var(--muted)} .num{font-variant-numeric:tabular-nums}
-.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;align-items:center;justify-content:space-between;padding-block:14px 10px;gap:10px}
-.brand{font-family:var(--f-display);font-weight:700;font-size:22px;letter-spacing:.02em;display:flex;align-items:center;gap:8px}
-.brand b{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:7px;background:var(--accent);color:var(--accent-ink);font-size:16px}
-.stack{display:flex;flex-direction:column;gap:18px}
-.sec{display:flex;flex-direction:column;gap:10px}
-.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
-.linkbtn{background:none;border:0;color:var(--accent);font-weight:600;padding:4px 0}
-
-.btn{min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:10px 16px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.btn.good{background:var(--good);border-color:var(--good);color:#fff}
-.btn.danger{color:var(--bad);background:transparent;border-color:var(--bad-soft)}
-.btn.sm{min-height:40px;padding:6px 12px;font-size:14.5px}
-.btn svg{width:18px;height:18px}
-.row{display:flex;gap:10px;flex-wrap:wrap}
-.row>.btn{flex:1 1 130px}
-
-.banner{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;border-radius:12px;padding:10px 12px;font-size:14.5px;background:var(--info-soft);color:var(--fg)}
-.banner.bad{background:var(--bad-soft)}
-.banner button{background:none;border:0;color:var(--info);font-weight:700;padding:0;flex:none}
-
-/* stats */
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
-.stat b{display:block;font-family:var(--f-display);font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
-.stat span{font-size:13.5px;color:var(--muted)}
-.stat.alert b{color:var(--warn)}
-
-/* follow up */
-.fu{display:flex;flex-direction:column;gap:10px;border-left:4px solid var(--warn)}
-.fu-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
-.fu-top b{font-size:17px}
-.fu-amt{font-family:var(--f-display);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.msg{background:var(--raised);border-radius:10px;padding:10px 12px;font-size:14.5px;color:var(--fg)}
-
-/* list */
-.list{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
-.qrow{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:13px 14px;border-top:1px solid var(--line);width:100%;text-align:left;background:none;border-left:0;border-right:0;border-bottom:0}
-.qrow:first-child{border-top:0}
-.qrow .who{font-weight:600;min-width:0;overflow-wrap:anywhere}
-.qrow .amt{font-family:var(--f-display);font-weight:700;font-size:19px;text-align:right;font-variant-numeric:tabular-nums}
-.qrow .sub{font-size:13.5px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
-.pill{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:6px;justify-self:end;align-self:center}
-.pill.draft{background:var(--raised);color:var(--muted)}
-.pill.sent{background:var(--info-soft);color:var(--info)}
-.pill.due{background:var(--warn-soft);color:var(--warn)}
-.pill.won{background:var(--good-soft);color:var(--good)}
-.pill.lost{background:var(--bad-soft);color:var(--bad)}
-.empty{padding:24px 16px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:12px;align-items:center}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:7px 13px;font-size:14.5px;color:var(--muted)}
-.chip[aria-pressed="true"]{background:var(--fg);border-color:var(--fg);color:var(--bg)}
-.chip.add{border-style:dashed}
-
-/* forms */
-.field{display:flex;flex-direction:column;gap:5px;min-width:0}
-.field label,.flabel{font-size:13.5px;font-weight:600;color:var(--muted)}
-.input{width:100%;min-width:0;min-height:48px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
-.input:focus{border-color:var(--accent);outline:none}
-.input::placeholder{color:var(--dim)}
-textarea.input{min-height:84px;resize:vertical}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.line{display:grid;grid-template-columns:1fr;gap:8px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
-.line-nums{display:grid;grid-template-columns:70px 90px 1fr auto;gap:8px;align-items:end}
-.line-amt{font-family:var(--f-display);font-weight:700;font-size:18px;text-align:right;padding-bottom:12px;font-variant-numeric:tabular-nums}
-.line .input{min-height:44px}
-.xbtn{background:none;border:0;color:var(--dim);font-size:22px;line-height:1;padding:8px;border-radius:8px;align-self:end;margin-bottom:4px}
-.xbtn:hover{color:var(--bad)}
-.totals{display:flex;flex-direction:column;gap:6px;font-variant-numeric:tabular-nums}
-.totals div{display:flex;justify-content:space-between;gap:10px}
-.totals .grand{font-family:var(--f-display);font-weight:700;font-size:26px;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
-.err{color:var(--bad);font-size:14px}
-.stickybar{position:sticky;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:4;background:var(--bg);padding-block:10px;display:flex;gap:10px}
-.stickybar .btn{flex:1}
-
-/* document */
-.doc-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--line)}
-.doc{background:var(--paper);color:var(--paper-ink);padding:22px;min-width:340px;font-size:14px;color-scheme:light}
-.doc-head{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:3px solid var(--paper-ink);padding-bottom:14px}
-.doc-biz b{font-family:var(--f-display);font-size:22px;letter-spacing:.02em;display:block}
-.doc-biz p,.doc-meta p{color:var(--paper-muted);font-size:13px}
-.doc-meta{text-align:right}
-.doc-meta .kind{font-family:var(--f-display);font-weight:700;font-size:26px;letter-spacing:.08em;color:var(--accent)}
-.doc-meta .mono{font-family:var(--f-mono);font-size:12.5px;color:var(--paper-muted)}
-.doc-to{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-block:14px}
-.doc-to small{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--paper-muted);display:block;margin-bottom:2px}
-.doc table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-.doc th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--paper-muted);text-align:left;padding:8px 6px;border-bottom:1px solid var(--paper-line)}
-.doc td{padding:9px 6px;border-bottom:1px solid var(--paper-line);vertical-align:top}
-.doc .r{text-align:right;white-space:nowrap}
-.doc-tot{margin-left:auto;width:min(100%,260px);padding-top:10px;display:flex;flex-direction:column;gap:4px;font-variant-numeric:tabular-nums}
-.doc-tot div{display:flex;justify-content:space-between;gap:10px}
-.doc-tot .grand{font-family:var(--f-display);font-weight:700;font-size:22px;border-top:2px solid var(--paper-ink);padding-top:6px;margin-top:4px}
-.doc-tot .dep{color:var(--accent);font-weight:700}
-.doc-notes{margin-top:16px;font-size:13px;color:var(--paper-muted);white-space:pre-wrap}
-.doc-sign{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:28px;font-size:12px;color:var(--paper-muted)}
-.doc-sign div{border-top:1px solid var(--paper-ink);padding-top:4px}
+.muted{color:var(--muted)}
+.eyebrow{font-size:14px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:56px;padding:0 26px;border-radius:14px;font-weight:700;font-size:18px;text-decoration:none;border:2px solid var(--ink);color:var(--ink);background:transparent;transition:transform .15s ease,background .15s ease}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-dark);border-color:var(--accent-dark)}
+.btn:hover{transform:translateY(-1px)}
+.btn svg{width:20px;height:20px}
 
 /* nav */
-.nav{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);
-  padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
-.nav-in{max-width:620px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);align-items:center}
-.nav button{background:none;border:0;padding:9px 0 11px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:600;color:var(--dim)}
-.nav button svg{width:23px;height:23px}
-.nav button[aria-current="page"]{color:var(--fg)}
-.nav button.newbtn span.plus{width:44px;height:44px;border-radius:14px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;margin-top:-4px}
-.nav button.newbtn svg{width:24px;height:24px}
+.nav{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid transparent;padding-top:env(safe-area-inset-top,0px)}
+.nav.scrolled{border-bottom-color:var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:68px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;font-size:26px;text-decoration:none}
+.brand img{width:34px;height:34px;border-radius:9px}
+.nav-links{display:flex;align-items:center;gap:6px}
+.nav-links a.text{font-weight:600;text-decoration:none;padding:10px 12px;border-radius:10px}
+.nav-links a.text:hover{background:var(--band)}
+.nav .btn{min-height:44px;padding:0 18px;font-size:16px}
+@media (max-width:560px){.nav-links a.hide-sm{display:none}}
 
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--fg);color:var(--bg);border-radius:12px;padding:11px 16px;display:flex;gap:14px;align-items:center;font-size:15px;max-width:calc(100% - 32px);box-shadow:0 10px 30px #0004}
-.toast button{background:none;border:0;color:inherit;font-weight:700;text-decoration:underline;padding:0}
+/* hero */
+.hero{padding-block:48px 72px}
+.hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center}
+.hero-copy{display:flex;flex-direction:column;gap:22px;min-width:0}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.lede{font-size:21px;color:var(--muted);max-width:34ch}
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.fine{font-size:15px;color:var(--muted)}
+.phone{position:relative;width:min(100%,330px);margin:0 auto;border-radius:46px;background:var(--ink);padding:12px;box-shadow:0 30px 60px -20px #13192155,0 0 0 1px #0002}
+.phone img{border-radius:35px;width:100%;height:auto}
+.phone::before{content:"";position:absolute;top:22px;left:50%;transform:translateX(-50%);width:84px;height:22px;border-radius:12px;background:var(--ink);z-index:2}
+.tag{position:absolute;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-weight:700;font-size:15px;box-shadow:0 12px 24px -12px #13192140;display:flex;gap:8px;align-items:center;white-space:nowrap}
+.tag .dot{width:10px;height:10px;border-radius:50%;background:var(--good)}
+.tag.t1{left:-28px;top:-14px}
+.tag.t2{right:-24px;bottom:14%}
+@media (max-width:860px){
+  .hero-grid{grid-template-columns:1fr;gap:40px}
+  .hero{padding-block:28px 56px}
+  .tag.t1{left:-6px}.tag.t2{right:-6px}
+}
 
-.pill.expired{background:var(--bad-soft);color:var(--bad)}
-.seg{display:inline-flex;background:var(--raised);border-radius:10px;padding:3px;gap:3px}
-.seg button{border:0;background:transparent;border-radius:8px;padding:6px 12px;font-weight:600;font-size:14px;color:var(--muted);min-height:34px}
-.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px #0002}
-.flabel-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.taxbox{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);font-weight:600;cursor:pointer;user-select:none}
-.taxbox input{width:20px;height:20px;accent-color:var(--accent)}
-.line-foot{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.suggest{display:flex;gap:6px;flex-wrap:wrap}
-.confirm{border:1px solid var(--bad);background:var(--bad-soft);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
-.notice{border-radius:12px;padding:10px 12px;font-size:14.5px;background:var(--warn-soft)}
-.doc-logo{max-height:56px;max-width:160px;display:block;margin-bottom:6px;object-fit:contain}
-.hist{font-size:14px;display:flex;flex-direction:column;gap:6px}
-.hist div{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:6px}
-.hist div:first-child{border-top:0;padding-top:0}
-.logo-prev{width:72px;height:72px;border-radius:10px;border:1px solid var(--line);background:#fff;object-fit:contain}
-.filebtn{position:relative;overflow:hidden}
-.ck svg{width:18px;height:18px;vertical-align:-3px;color:var(--good)}
-.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
-@media (max-width:400px){.line-nums{grid-template-columns:60px 80px 1fr auto}.grid3{grid-template-columns:1fr 1fr}}
-@media (prefers-reduced-motion:no-preference){.view-in{animation:fade .18s ease-out}@keyframes fade{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}}
+/* problem band */
+.band{background:var(--ink);color:#F4F2EE}
+.band .wrap{padding-block:72px}
+.problem{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start}
+.problem h2{color:#fff}
+.problem h2 span{color:#FF8A4C}
+.problem p{font-size:20px;color:#C9CDD3;max-width:46ch}
+.problem p+p{margin-top:16px}
+@media (max-width:760px){.problem{grid-template-columns:1fr;gap:20px}}
+
+/* steps */
+.section{padding-block:80px}
+.sec-head{display:flex;flex-direction:column;gap:12px;max-width:640px;margin-bottom:40px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;counter-reset:s}
+.step{background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:26px;display:flex;flex-direction:column;gap:10px;counter-increment:s}
+.step::before{content:counter(s);font-family:var(--f-display);font-weight:700;font-size:20px;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.step p{color:var(--muted);font-size:17px}
+@media (max-width:820px){.steps{grid-template-columns:1fr}}
+
+/* feature rows */
+.feature{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;padding-block:40px}
+.feature+.feature{border-top:1px solid var(--line)}
+.feature .copy{display:flex;flex-direction:column;gap:16px;min-width:0}
+.feature .copy p{color:var(--muted);font-size:19px;max-width:42ch}
+.checks{list-style:none;padding:0;margin:4px 0 0;display:flex;flex-direction:column;gap:10px}
+.checks li{display:flex;gap:10px;align-items:flex-start;font-size:17px}
+.checks svg{flex:none;width:22px;height:22px;color:var(--good);margin-top:2px}
+.shot{background:var(--band);border-radius:24px;padding:32px;display:flex;justify-content:center}
+.shot img{width:min(100%,340px);border-radius:18px;box-shadow:0 20px 40px -18px #13192150;border:1px solid var(--line)}
+.feature.flip .shot{order:-1}
+@media (max-width:820px){.feature{grid-template-columns:1fr;gap:28px}.feature.flip .shot{order:0}.shot{padding:20px}}
+
+/* extras */
+.extras{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.extra{border-top:3px solid var(--ink);padding-top:14px;display:flex;flex-direction:column;gap:6px}
+.extra b{font-size:18px}
+.extra span{color:var(--muted);font-size:16px}
+@media (max-width:860px){.extras{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.extras{grid-template-columns:1fr}}
+
+/* pricing */
+.pricing{background:var(--band)}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:820px}
+.plan{background:var(--paper);border:1px solid var(--line);border-radius:22px;padding:30px;display:flex;flex-direction:column;gap:16px}
+.plan.pro{border:2px solid var(--accent);position:relative}
+.plan.pro .badge{position:absolute;top:-14px;left:26px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:5px 12px;border-radius:99px}
+.price{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.price b{font-family:var(--f-display);font-size:58px;line-height:1}
+.price span{color:var(--muted)}
+.plan .btn{margin-top:auto;width:100%}
+@media (max-width:700px){.plans{grid-template-columns:1fr}}
+
+/* faq */
+.faq{max-width:780px;display:flex;flex-direction:column;gap:12px}
+details{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+summary{font-weight:700;font-size:19px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-family:var(--f-display);font-size:28px;line-height:.8;color:var(--accent)}
+details[open] summary::after{content:"–"}
+details p{margin-top:10px;color:var(--muted);font-size:17px}
+
+/* final cta */
+.final{text-align:center}
+.final .wrap{padding-block:88px;display:flex;flex-direction:column;align-items:center;gap:20px}
+.final p{font-size:20px;color:#C9CDD3;max-width:40ch}
+
+footer{padding-block:28px calc(28px + env(safe-area-inset-bottom,0px));font-size:15px;color:var(--muted)}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+footer nav{display:flex;gap:18px;flex-wrap:wrap}
+footer a{text-decoration:none;font-weight:600}
+footer a:hover{color:var(--ink)}
 </style>
 </head>
 <body>
-<div class="app">
-  <header class="top"><div class="brand"><b>C</b>Closer</div><div id="topright"></div></header>
-  <main id="view"></main>
-</div>
-<nav class="nav" aria-label="Main"><div class="nav-in" id="navin"></div></nav>
-<div id="toast" class="toast" hidden></div>
+
+<header class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top" aria-label="Closer home"><img src="icons/icon-192.png" alt="">Closer</a>
+    <nav class="nav-links" aria-label="Main">
+      <a class="text hide-sm" href="#pricing">Pricing</a>
+      <a class="text" href="app.html">Log in</a>
+      <a class="btn primary" href="app.html">Try it free</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">For roofers, painters, handymen &amp; landscapers</p>
+        <h1>Estimates that <em>get answered.</em></h1>
+        <p class="lede">Build a clean estimate on your phone, text the customer a link to approve it, and get reminded to follow up before the job slips away.</p>
+        <div class="cta-row">
+          <a class="btn primary" href="app.html">Try it free
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="btn" href="#how">See how it works</a>
+        </div>
+        <p class="fine">No card needed. 5 free estimates every month. Works on any phone.</p>
+      </div>
+      <div style="position:relative;min-width:0">
+        <div class="phone"><img src="img/home.jpg" alt="Closer home screen showing money waiting on answers, money won this month, and a follow-up due today with a message already written" width="390" height="780"></div>
+        <div class="tag t1"><span class="dot"></span>Maria approved #1001</div>
+        <div class="tag t2">Follow-up written for you</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap problem">
+      <h2>Most estimates don't get a no. They get <span>no answer.</span></h2>
+      <div>
+        <p>You price the job and send it. The customer gets busy. You get busy. A week later someone else is on their roof.</p>
+        <p>Closer keeps track of every estimate you send and tells you exactly who to check in with today, with the text already written. One tap and it's sent.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="how">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">How it works</p>
+        <h2>From the driveway to a yes</h2>
+      </div>
+      <div class="steps">
+        <div class="step"><h3>Build it on site</h3><p>Tap your saved prices, set quantities, and Closer does the math: tax on the right lines, discount, and the deposit to schedule.</p></div>
+        <div class="step"><h3>Text a link</h3><p>Your customer opens a clean estimate on their phone, types their name, and taps Approve. No app or account needed on their end.</p></div>
+        <div class="step"><h3>Follow up on time</h3><p>No answer after a few days? Closer reminds you with a message ready to send, and marks the job won the moment they approve.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="feature">
+      <div class="copy">
+        <p class="eyebrow">Look the part</p>
+        <h2>An estimate that looks like a real business</h2>
+        <p>Your logo, license number, terms and a signature line on every estimate. Customers see a professional quote, not a text with a number in it.</p>
+        <ul class="checks">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Mark labor as not taxed, materials as taxed</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Deposit as a percent or a flat amount</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Won jobs turn into an invoice with the balance due</li>
+        </ul>
+      </div>
+      <div class="shot"><img src="img/doc.jpg" alt="Example estimate for a roof leak repair with line items, tax, total of $1,395.50 and a 30% deposit" width="340" loading="lazy"></div>
+    </div>
+    <div class="feature flip">
+      <div class="copy">
+        <p class="eyebrow">Never forget a follow-up</p>
+        <h2>The reminder, and the message, done for you</h2>
+        <p>Closer knows which estimates went quiet and writes a friendly check-in for each one. The second follow-up offers to get them scheduled. After three, it suggests closing it out.</p>
+        <ul class="checks">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Tap "Text it" and your messages app opens, ready to send</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>See money waiting on answers and money won this month</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Expired estimates get flagged so prices stay current</li>
+        </ul>
+      </div>
+      <div class="shot"><img src="img/followup.jpg" alt="Follow-up card for Maria Lopez, sent 5 days ago with no answer, with a ready-to-send check-in message and buttons to text it or mark it won or lost" width="340" loading="lazy"></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap extras">
+      <div class="extra"><b>Works on any phone</b><span>Opens in your browser. Add it to your home screen and it works like an app.</span></div>
+      <div class="extra"><b>Backed up automatically</b><span>Lose your phone, keep your estimates. Sign in on any device.</span></div>
+      <div class="extra"><b>Repeat customers in one tap</b><span>Start typing a name and their phone, email and address fill in.</span></div>
+      <div class="extra"><b>Your data stays yours</b><span>No ads, no selling your info. Export or delete it any time.</span></div>
+    </div>
+  </section>
+
+  <section class="section pricing" id="pricing">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Pricing</p>
+        <h2>Free to start. One price when you're busy.</h2>
+      </div>
+      <div class="plans">
+        <div class="plan">
+          <h3>Free</h3>
+          <div class="price"><b>$0</b><span>forever</span></div>
+          <ul class="checks">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>5 new estimates a month</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Approval links and follow-up reminders</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Automatic backup</li>
+          </ul>
+          <a class="btn" href="app.html">Start free</a>
+        </div>
+        <div class="plan pro">
+          <span class="badge">For busy months</span>
+          <h3>Closer Pro</h3>
+          <div class="price"><b>$19.99</b><span>per month · cancel anytime</span></div>
+          <ul class="checks">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Unlimited estimates</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Everything in Free</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>One extra job won pays for years of it</li>
+          </ul>
+          <a class="btn primary" href="app.html">Start free, upgrade anytime</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="sec-head"><p class="eyebrow">Questions</p><h2>Good to know</h2></div>
+      <div class="faq">
+        <details><summary>Do I need to download anything?</summary><p>No. Closer runs in your phone's browser. To keep it handy, open it in Safari and tap Share, then Add to Home Screen, or in Chrome tap Install app.</p></details>
+        <details><summary>Does my customer need Closer?</summary><p>No. They get a link by text, see your estimate on their phone, type their name and tap Approve or Decline. That's it.</p></details>
+        <details><summary>Do I need an account?</summary><p>You can try Closer without one. Create a free account to back up your estimates, use more than one device, and send approval links.</p></details>
+        <details><summary>What happens after 5 estimates?</summary><p>On the free plan you can still view, edit and follow up on everything. New estimates open up again on the 1st, or upgrade to Pro for unlimited.</p></details>
+        <details><summary>Can I cancel Pro?</summary><p>Yes, any time, right from the app. You keep Pro until the end of the month you paid for. No contract.</p></details>
+        <details><summary>How does tax work?</summary><p>Set your tax rate once, then mark each line as taxable or not. Many states tax materials but not labor, so check your local rules.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="band final">
+    <div class="wrap">
+      <h2 style="color:#fff">Send your next estimate with Closer</h2>
+      <p>Set up takes about two minutes. Your first five estimates every month are free.</p>
+      <a class="btn primary" href="app.html">Try it free</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Closer Estimates</span>
+    <nav aria-label="Footer"><a href="app.html">Open the app</a><a href="support.html">Help</a><a href="privacy.html">Privacy</a></nav>
+  </div>
+</footer>
 
 <script>
 (function(){
-"use strict";
-const KEY='closer.v1';
-const $=s=>document.querySelector(s);
-const uid=()=>Math.random().toString(36).slice(2,10);
-const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const DAY=86400000;
-const USD=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
-const r2=n=>Math.round((+n||0)*100)/100;
-const money=n=>USD.format(r2(n));
-const moneyShort=n=>n>=10000?'$'+(n/1000).toFixed(n>=100000?0:1)+'k':money(n).replace(/\.00$/,'');
-const fdate=t=>new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-function ago(t){const d=Math.floor((Date.now()-t)/DAY);return d<=0?'today':d===1?'yesterday':d+' days ago'}
-const first=n=>(n||'').trim().split(/\s+/)[0]||'there';
-const inFrame=(()=>{try{return window.self!==window.top}catch(e){return true}})();
-const IC={
-  home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
-  list:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
-  plus:'<path d="M12 5v14M5 12h14"/>',
-  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/>',
-  copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
-  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
-  back:'<path d="M15 5l-7 7 7 7"/>',
-  chat:'<path d="M21 12a8 8 0 0 1-11.8 7L4 20l1.1-4.6A8 8 0 1 1 21 12z"/>'
-};
-const ic=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
-
-/* ---------- data ---------- */
-function line(desc,qty,unit,price,taxable){return {id:uid(),desc,qty,unit,price,taxable:taxable!==false}}
-function seed(){
-  const now=Date.now();
-  const biz={name:'Ridgeline Home Repair',owner:'Sam Ortiz',phone:'(305) 555-0142',email:'sam@ridgeline.example',license:'Lic. #CGC-000000',address:'Homestead, FL',logo:'',taxRate:7,depositPct:30,followDays:3,validDays:30,nextNum:1005,
-    terms:'Deposit due to schedule the job. Balance due on completion. Estimate valid for 30 days. Price may change if hidden damage is found.'};
-  const q=(num,client,title,lines,status,daysAgo,extra)=>Object.assign({id:uid(),num,client,title,lines,discount:0,discountType:'$',taxRate:7,depositType:'%',depositPct:30,depositAmt:0,notes:'',status,created:now-daysAgo*DAY,sentAt:status==='draft'?null:now-daysAgo*DAY,followUps:[],decidedAt:null,snoozeUntil:null,history:[]},extra||{});
-  return {v:1,sample:true,biz,editing:null,
-    items:[{id:uid(),desc:'Labor',unit:'hr',price:75,taxable:false},{id:uid(),desc:'Shingle repair',unit:'sq',price:325,taxable:true},{id:uid(),desc:'Drip edge',unit:'ft',price:4.5,taxable:true},{id:uid(),desc:'Debris removal & haul-away',unit:'job',price:250,taxable:false},{id:uid(),desc:'Permit fee',unit:'ea',price:150,taxable:false}],
-    quotes:[
-      q(1001,{name:'Maria Lopez',phone:'(305) 555-0198',email:'',address:'SW 296th St'},'Roof leak repair, back porch',[line('Shingle repair',2,'sq',325),line('Labor',6,'hr',75,false),line('Debris removal & haul-away',1,'job',250,false)],'sent',5),
-      q(1002,{name:'Derek Chen',phone:'(305) 555-0117',email:'',address:''},'Gutter replacement, front of house',[line('Seamless aluminum gutter',64,'ft',9.5),line('Downspouts',3,'ea',85),line('Labor',5,'hr',75,false)],'sent',1),
-      q(1003,{name:'Angela Brooks',phone:'(305) 555-0133',email:'',address:''},'Fascia board replacement',[line('Fascia board',40,'ft',12),line('Labor',8,'hr',75,false),line('Paint & primer',1,'job',180)],'won',9,{decidedAt:now-6*DAY}),
-      q(1004,{name:'Tom Reyes',phone:'',email:'',address:''},'Full roof inspection & report',[line('Inspection',1,'job',225,false)],'draft',0)
-    ]};
-}
-function normalize(d){
-  d.biz=Object.assign({name:'My Business',owner:'',phone:'',email:'',license:'',address:'',logo:'',taxRate:0,depositPct:0,followDays:3,validDays:30,nextNum:1001,terms:''},d.biz||{});
-  d.items=(d.items||[]).map(i=>Object.assign({taxable:true},i));
-  d.quotes=(d.quotes||[]).map(q=>{
-    q=Object.assign({discount:0,discountType:'$',taxRate:0,depositType:'%',depositPct:0,depositAmt:0,notes:'',followUps:[],decidedAt:null,snoozeUntil:null,history:[],client:{}},q);
-    q.client=Object.assign({name:'',phone:'',email:'',address:''},q.client);
-    q.lines=(q.lines||[]).map(l=>Object.assign({id:uid(),desc:'',qty:1,unit:'',price:0,taxable:true},l));
-    return q;});
-  if(d.editing&&!d.editing.draft)d.editing=null;
-  d.v=1;return d;
-}
-let storageOk=true;try{localStorage.setItem('__c','1');localStorage.removeItem('__c')}catch(e){storageOk=false}
-function load(){try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);if(d&&d.v===1&&Array.isArray(d.quotes)&&d.biz)return normalize(d)}}catch(e){}return normalize(seed())}
-function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){storageOk=false;toast('Couldn\'t save. Storage may be full. Try removing your logo.')}updateBadge()}
-function save(){S.updatedAt=Date.now();saveLocal();if(typeof schedulePush==='function')schedulePush()}
-let S=load();
-let view='home',curId=null,filter='all',query='',draft=null,dirty=false,asInvoice=false,confirmDel=false,confirmDiscard=false,pendingRestore=null,toastTimer=null,undoFn=null;
-if(S.editing&&S.editing.dirty){draft=S.editing.draft;dirty=true;view='edit'}else S.editing=null;
-
-/* ---------- money logic ---------- */
-function calc(q){
-  let sub=0,taxSub=0;
-  for(const l of q.lines){const a=(+l.qty||0)*(+l.price||0);sub+=a;if(l.taxable!==false)taxSub+=a}
-  let disc=q.discountType==='%'?sub*(+q.discount||0)/100:(+q.discount||0);
-  disc=Math.min(Math.max(disc,0),sub);
-  const taxBase=sub>0?taxSub-disc*(taxSub/sub):0;
-  const tax=Math.max(0,taxBase)*(+q.taxRate||0)/100;
-  const total=sub-disc+tax;
-  const deposit=q.depositType==='$'?Math.min(Math.max(+q.depositAmt||0,0),total):total*(+q.depositPct||0)/100;
-  return {sub,taxSub,disc,tax,total,deposit};
-}
-const depLabel=q=>q.depositType==='$'?'Deposit to schedule':`Deposit to schedule (${+q.depositPct||0}%)`;
-const byId=id=>S.quotes.find(q=>q.id===id);
-const maxNum=()=>S.quotes.reduce((m,q)=>Math.max(m,+q.num||0),0);
-function lastTouch(q){return Math.max(q.sentAt||0,...q.followUps)}
-function validUntil(q){return (q.sentAt||q.created)+(S.biz.validDays||30)*DAY}
-function isExpired(q){return q.status==='sent'&&Date.now()>validUntil(q)}
-function isDue(q){return q.status==='sent'&&Date.now()>=(q.snoozeUntil||0)&&Date.now()-lastTouch(q)>=S.biz.followDays*DAY}
-function statusOf(q){return isDue(q)?'due':isExpired(q)?'expired':q.status}
-const STATUS_LABEL={draft:'Draft',sent:'Sent',due:'Follow up',expired:'Expired',won:'Won',lost:'Lost'};
-function updateBadge(){const n=S.quotes.filter(isDue).length;document.title=n?`(${n}) Closer Estimates`:'Closer Estimates';try{if(navigator.setAppBadge){n?navigator.setAppBadge(n).catch(()=>{}):navigator.clearAppBadge().catch(()=>{})}}catch(e){}}
-
-const sig=()=>S.biz.owner||S.biz.name;
-function sendMsg(q){const t=calc(q);return `Hi ${first(q.client.name)}, here's your estimate #${q.num} for ${q.title}: ${money(t.total)} total${t.deposit>0?`, with a ${money(t.deposit)} deposit to get you on the schedule`:''}. Let me know if you have any questions. – ${sig()}, ${S.biz.name}`}
-function followMsg(q){const n=q.followUps.length,t=money(calc(q).total);
-  if(isExpired(q))return `Hi ${first(q.client.name)}, the estimate for ${q.title} (${t}) has passed its valid date. If you're still interested, I'm happy to confirm the price or update it for you. – ${sig()}`;
-  if(n===0)return `Hi ${first(q.client.name)}, just checking in on the estimate I sent for ${q.title} (${t}). Happy to answer questions or adjust anything. – ${sig()}`;
-  if(n===1)return `Hi ${first(q.client.name)}, wanted to follow up on your ${q.title} estimate. I have openings coming up and can get you scheduled soon. Want me to hold a spot? – ${sig()}`;
-  return `Hi ${first(q.client.name)}, I'll close out the ${q.title} estimate for now. If you'd like to move forward later, just reply here and I'll take care of you. – ${sig()}`;}
-function smsHref(phone,body){const p=(phone||'').replace(/[^\d+]/g,'');return `sms:${p}${/iPhone|iPad|iPod/.test(navigator.userAgent)?'&':'?'}body=${encodeURIComponent(body)}`}
-
-/* ---------- toast & clipboard ---------- */
-function toast(msg,undo){const el=$('#toast');undoFn=undo||null;el.innerHTML=`<span>${esc(msg)}</span>${undo?'<button data-act="undo">Undo</button>':''}`;el.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{el.hidden=true;undoFn=null},undo?5000:2800)}
-function copyText(text,okMsg){
-  const fallback=()=>{const ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();toast(ok?okMsg:'Copy was blocked here. Long-press the text to copy it.')};
-  try{navigator.clipboard.writeText(text).then(()=>toast(okMsg),fallback)}catch(e){fallback()}
-}
-
-/* ---------- shared bits ---------- */
-function banners(){
-  let h='';
-  if(!storageOk)h+=`<div class="banner bad"><span>This browser is blocking storage, so estimates last only until you close the page. Copy a backup in Settings.</span></div>`;
-  if(S.sample)h+=`<div class="banner"><span>You're looking at example estimates for a sample business. Add your own details in Settings, or clear the examples there.</span><button data-act="dismiss-sample">Got it</button></div>`;
-  if(!S.biz.name&&view!=='settings')h+=`<div class="banner"><span>Add your business name and phone so they show on your estimates.</span><button data-act="nav" data-v="settings">Add details</button></div>`;
-  if(S.editing&&view!=='edit'){const d=S.editing.draft;h+=`<div class="banner"><span>You have an unsaved estimate${d.client.name?` for ${esc(d.client.name)}`:''}.</span><button data-act="resume">Finish it</button></div>`}
-  return h;
-}
-function qRow(q){const st=statusOf(q),t=calc(q).total;
-  const when=q.status==='draft'?'created '+ago(q.created):q.status==='sent'?'sent '+ago(q.sentAt):(q.status==='won'?'won ':'lost ')+ago(q.decidedAt||q.created);
-  return `<button class="qrow" data-act="open" data-id="${q.id}"><span class="who">${esc(q.client.name||'No name')}</span><span class="amt">${money(t)}</span>
-  <span class="sub">#${q.num} · ${esc(q.title||'Untitled job')} · ${when}</span><span class="pill ${st}">${STATUS_LABEL[st]}</span></button>`;}
-function customers(){
-  const m=new Map();
-  S.quotes.slice().sort((a,b)=>b.created-a.created).forEach(q=>{const k=(q.client.name||'').trim().toLowerCase();if(k&&!m.has(k))m.set(k,q.client)});
-  return [...m.values()];
-}
-
-/* ---------- home ---------- */
-function followCard(q){
-  const t=calc(q).total,n=q.followUps.length,exp=isExpired(q);
-  const status=n?`followed up ${n}× · last ${ago(lastTouch(q))}`:`sent ${ago(q.sentAt)}, no answer`;
-  if(n>=3)return `<div class="card fu"><div class="fu-top"><span><b>${esc(q.client.name)}</b><br><span class="muted" style="font-size:14px">${esc(q.title)} · ${status}</span></span><span class="fu-amt">${money(t)}</span></div>
-    <p class="muted" style="font-size:14.5px">You've followed up ${n} times with no answer. Most jobs that go this quiet don't come back, so it's usually time to close it out.</p>
-    <div class="row"><button class="btn danger sm" data-act="lost" data-id="${q.id}">Close it out (lost)</button><button class="btn sm" data-act="snooze" data-id="${q.id}">Remind me in 2 weeks</button></div>
-    <div class="row"><button class="btn good sm" data-act="won" data-id="${q.id}">${ic('check')}They said yes</button></div></div>`;
-  return `<div class="card fu"><div class="fu-top"><span><b>${esc(q.client.name)}</b><br><span class="muted" style="font-size:14px">${esc(q.title)} · ${status}${exp?' · <b style="color:var(--bad)">expired</b>':''}</span></span><span class="fu-amt">${money(t)}</span></div>
-    <div class="msg">${esc(followMsg(q))}</div>
-    <div class="row">${!inFrame&&q.client.phone?`<a class="btn primary sm" href="${esc(smsHref(q.client.phone,followMsg(q)))}" data-act="sms-follow" data-id="${q.id}">${ic('chat')}Text it</a>`:''}<button class="btn ${!inFrame&&q.client.phone?'':'primary'} sm" data-act="copy-follow" data-id="${q.id}">${ic('copy')}Copy message</button><button class="btn sm" data-act="mark-follow" data-id="${q.id}">I sent it</button></div>
-    <div class="row"><button class="btn good sm" data-act="won" data-id="${q.id}">${ic('check')}They said yes</button><button class="btn danger sm" data-act="lost" data-id="${q.id}">Lost it</button><button class="btn sm" data-act="snooze-short" data-id="${q.id}">Later</button></div></div>`;
-}
-function renderHome(){
-  const now=new Date(),monthStart=new Date(now.getFullYear(),now.getMonth(),1).getTime();
-  const open=S.quotes.filter(q=>q.status==='sent');
-  const openVal=open.reduce((m,q)=>m+calc(q).total,0);
-  const wonMonth=S.quotes.filter(q=>q.status==='won'&&(q.decidedAt||0)>=monthStart);
-  const wonVal=wonMonth.reduce((m,q)=>m+calc(q).total,0);
-  const decided=S.quotes.filter(q=>q.status==='won'||q.status==='lost');
-  const rate=decided.length?Math.round(100*decided.filter(q=>q.status==='won').length/decided.length):null;
-  const due=S.quotes.filter(isDue).sort((a,b)=>lastTouch(a)-lastTouch(b));
-  const hr=now.getHours(),greet=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
-  let h=`<div class="stack view-in">
-  <div><p class="muted">${esc(S.biz.name)}</p><h1>${greet}${S.biz.owner?', '+esc(first(S.biz.owner)):''}</h1></div>
-  ${banners()}
-  ${planChip()}
-  <div class="stats">
-    <div class="stat"><b>${moneyShort(openVal)}</b><span>waiting on ${open.length} answer${open.length===1?'':'s'}</span></div>
-    <div class="stat"><b>${moneyShort(wonVal)}</b><span>won this month</span></div>
-    <div class="stat ${due.length?'alert':''}"><b>${due.length}</b><span>follow-up${due.length===1?'':'s'} due</span></div>
-    <div class="stat"><b>${rate==null?'–':rate+'%'}</b><span>win rate${decided.length?` (${decided.length} decided)`:''}</span></div>
-  </div>
-  <button class="btn primary" data-act="new" style="min-height:54px;font-size:17px">${ic('plus')}New estimate</button>
-  <section class="sec"><h3>Follow up today</h3>`;
-  h+=due.length?due.map(followCard).join(''):`<div class="card empty" style="padding:18px">${open.length?`Nothing due. Closer reminds you ${S.biz.followDays} days after you send or follow up.`:'No open estimates. Send one and Closer will remind you to follow up.'}</div>`;
-  h+=`</section><section class="sec"><div class="sec-head"><h3>Recent estimates</h3><button class="linkbtn" data-act="nav" data-v="quotes">See all</button></div>`;
-  const recent=S.quotes.slice().sort((a,b)=>b.created-a.created).slice(0,4);
-  h+=recent.length?`<div class="list">${recent.map(qRow).join('')}</div>`:`<div class="list"><div class="empty">No estimates yet.</div></div>`;
-  return h+`</section></div>`;
-}
-
-/* ---------- list ---------- */
-function renderQuotes(){
-  const counts={all:S.quotes.length};['draft','sent','won','lost'].forEach(s=>counts[s]=S.quotes.filter(q=>q.status===s).length);
-  return `<div class="stack view-in"><div class="sec-head"><h1>Estimates</h1><button class="btn primary sm" data-act="new">${ic('plus')}New</button></div>
-  ${banners()}
-  <input class="input" id="search" type="search" placeholder="Search by customer, job or number" value="${esc(query)}" aria-label="Search estimates">
-  <div class="chips" role="group" aria-label="Filter">${['all','draft','sent','won','lost'].map(f=>`<button class="chip" data-act="filter" data-f="${f}" aria-pressed="${filter===f}">${f==='all'?'All':STATUS_LABEL[f]} ${counts[f]}</button>`).join('')}</div>
-  <div id="qlist"></div></div>`;
-}
-function renderQList(){
-  const el=$('#qlist');if(!el)return;const q=query.trim().toLowerCase();
-  let list=S.quotes.filter(x=>filter==='all'||x.status===filter);
-  if(q)list=list.filter(x=>(x.client.name+' '+x.title+' '+x.num+' '+x.client.phone).toLowerCase().includes(q));
-  list.sort((a,b)=>b.created-a.created);
-  el.innerHTML=list.length?`<div class="list">${list.map(qRow).join('')}</div>`:`<div class="list"><div class="empty">${q?`No estimates match “${esc(query)}”.`:'Nothing here yet.'}<button class="btn primary sm" data-act="new">New estimate</button></div></div>`;
-}
-
-/* ---------- document ---------- */
-function docHTML(q){
-  const t=calc(q),inv=asInvoice&&q.status==='won',rev=q.history.length;
-  return `<div class="doc-wrap"><div class="doc">
-  <div class="doc-head">
-    <div class="doc-biz">${S.biz.logo?`<img class="doc-logo" src="${S.biz.logo}" alt="">`:''}<b>${esc(S.biz.name)}</b><p>${[S.biz.phone,S.biz.email].filter(Boolean).map(esc).join(' · ')}</p><p>${[S.biz.address,S.biz.license].filter(Boolean).map(esc).join(' · ')}</p></div>
-    <div class="doc-meta"><div class="kind">${inv?'INVOICE':'ESTIMATE'}</div><div class="mono">#${q.num}${rev?` · Rev ${rev+1}`:''}</div><p>${fdate(q.sentAt||q.created)}</p>${rev?`<p>Revised ${fdate(q.history[rev-1].replacedAt)}</p>`:''}${inv?'':`<p>Valid until ${fdate(validUntil(q))}</p>`}</div>
-  </div>
-  <div class="doc-to"><div><small>Prepared for</small><b>${esc(q.client.name||'')}</b><p style="color:var(--paper-muted)">${[q.client.address,q.client.phone,q.client.email].filter(Boolean).map(esc).join('<br>')}</p></div>
-  <div style="text-align:right"><small>Job</small><b>${esc(q.title||'')}</b></div></div>
-  <table><thead><tr><th>Description</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Amount</th></tr></thead><tbody>
-  ${q.lines.map(l=>`<tr><td>${esc(l.desc)}${q.taxRate&&l.taxable===false&&t.taxSub>0?' <span style="color:var(--paper-muted);font-size:12px">(not taxed)</span>':''}</td><td class="r">${+l.qty||0}${l.unit?' '+esc(l.unit):''}</td><td class="r">${money(l.price)}</td><td class="r">${money((+l.qty||0)*(+l.price||0))}</td></tr>`).join('')}
-  </tbody></table>
-  <div class="doc-tot"><div><span>Subtotal</span><span>${money(t.sub)}</span></div>
-  ${t.disc?`<div><span>Discount${q.discountType==='%'?` (${+q.discount}%)`:''}</span><span>−${money(t.disc)}</span></div>`:''}
-  ${q.taxRate&&t.tax?`<div><span>Tax (${q.taxRate}%)</span><span>${money(t.tax)}</span></div>`:''}
-  <div class="grand"><span>Total</span><span>${money(t.total)}</span></div>
-  ${t.deposit>0?(inv?`<div><span>Deposit paid</span><span>−${money(t.deposit)}</span></div><div class="dep"><span>Balance due</span><span>${money(t.total-t.deposit)}</span></div>`:`<div class="dep"><span>${depLabel(q)}</span><span>${money(t.deposit)}</span></div>`):''}
-  </div>
-  ${q.notes?`<div class="doc-notes">${esc(q.notes)}</div>`:''}
-  ${S.biz.terms?`<div class="doc-notes">${esc(S.biz.terms)}</div>`:''}
-  ${inv?'':`<div class="doc-sign"><div>Customer signature</div><div>Date</div></div>`}
-  </div></div>`;
-}
-
-/* ---------- detail ---------- */
-function renderView(){
-  const q=byId(curId);if(!q){view='quotes';return renderQuotes()}
-  const st=statusOf(q),canText=!inFrame&&q.client.phone;
-  let actions='';
-  const canShare=cloudOK&&session;
-  if(q.status==='draft'&&canShare)actions=`<button class="btn primary" data-act="share" data-id="${q.id}">${ic('chat')}Send approval link</button><button class="btn" data-act="send" data-id="${q.id}">${ic('copy')}Copy plain text instead</button><button class="btn" data-act="edit" data-id="${q.id}">Edit</button>`;
-  else if(q.status==='draft')actions=`${canText?`<a class="btn primary" href="${esc(smsHref(q.client.phone,sendMsg(q)))}" data-act="sms-send" data-id="${q.id}">${ic('chat')}Text it & mark sent</a>`:''}<button class="btn ${canText?'':'primary'}" data-act="send" data-id="${q.id}">${ic('copy')}Copy text & mark sent</button><button class="btn" data-act="edit" data-id="${q.id}">Edit</button>`;
-  else if(q.status==='sent')actions=`${canShare&&!q.shareToken?`<button class="btn primary" data-act="share" data-id="${q.id}">${ic('chat')}Send approval link</button>`:''}<button class="btn good" data-act="won" data-id="${q.id}">${ic('check')}They said yes</button><button class="btn danger" data-act="lost" data-id="${q.id}">Lost it</button><button class="btn" data-act="copy-follow" data-id="${q.id}">${ic('copy')}Copy follow-up</button><button class="btn" data-act="edit" data-id="${q.id}">Edit</button>`;
-  else if(q.status==='won')actions=`<button class="btn" data-act="toggle-inv">${asInvoice?'Show estimate':'Show as invoice'}</button><button class="btn" data-act="reopen" data-id="${q.id}">Move back to sent</button>`;
-  else actions=`<button class="btn" data-act="reopen" data-id="${q.id}">Reopen</button>`;
-  let h=`<div class="stack view-in">
-  <div><button class="linkbtn" data-act="nav" data-v="quotes" style="display:inline-flex;align-items:center;gap:4px">${ic('back')}Estimates</button>
-  <div class="sec-head" style="margin-top:4px"><h1>${esc(q.client.name||'No name')}</h1><span class="pill ${st}">${STATUS_LABEL[st]}</span></div>
-  <p class="muted">#${q.num} · ${esc(q.title)}${q.sentAt?` · sent ${ago(q.sentAt)}`:''}${q.followUps.length?` · followed up ${q.followUps.length}×`:''}</p></div>
-  ${q.approvedBy?`<div class="notice" style="background:var(--good-soft)"><b>${esc(q.approvedBy)}</b> approved this estimate through your link on ${fdate(q.decidedAt)}.</div>`:''}
-  ${q.declinedBy?`<div class="notice" style="background:var(--bad-soft)"><b>${esc(q.declinedBy)}</b> declined this estimate through your link on ${fdate(q.decidedAt)}.</div>`:''}
-  ${cloudOK&&!session&&(q.status==='draft'||q.status==='sent')?`<div class="banner"><span>Sign in to send ${esc(first(q.client.name))} a link where they can approve this estimate.</span><button data-act="nav" data-v="settings">Sign in</button></div>`:''}
-  ${st==='expired'?`<div class="notice">This estimate passed its valid date on ${fdate(validUntil(q))}. Your follow-up message will offer to confirm or update the price.</div>`:''}
-  <div class="row">${actions}</div>
-  ${shareCard(q)}
-  ${!inFrame?`<button class="btn" data-act="print">Save as PDF</button>`:''}
-  ${docHTML(q)}
-  <p class="muted" style="font-size:14px">${inFrame?'To send the estimate itself, take a screenshot of it. In the installed app you can save it as a PDF.':'Save as PDF opens your phone\'s print screen, where you can save or share the PDF.'}</p>`;
-  if(q.history.length){
-    h+=`<section class="sec"><h3>Earlier versions</h3><div class="card hist">${q.history.map((v,i)=>`<div><span>Rev ${i+1}${i===0&&v.sentAt?` · sent ${fdate(v.sentAt)}`:''} · replaced ${fdate(v.replacedAt)}</span><b class="num">${money(v.total)}</b></div>`).join('')}<div><span>Rev ${q.history.length+1} (current)</span><b class="num">${money(calc(q).total)}</b></div></div></section>`;
-  }
-  h+=`<div class="row"><button class="btn" data-act="duplicate" data-id="${q.id}">Duplicate</button>${confirmDel?`<button class="btn danger" data-act="del-yes" data-id="${q.id}">Yes, delete #${q.num}</button><button class="btn" data-act="del-no">Keep it</button>`:`<button class="btn danger" data-act="del" data-id="${q.id}">Delete</button>`}</div></div>`;
-  return h;
-}
-
-/* ---------- editor ---------- */
-function newDraft(){return {id:null,num:Math.max(S.biz.nextNum,maxNum()+1),client:{name:'',phone:'',email:'',address:''},title:'',lines:[line('',1,'',0)],discount:0,discountType:'$',taxRate:S.biz.taxRate,depositType:'%',depositPct:S.biz.depositPct,depositAmt:0,notes:''}}
-function persistDraft(){S.editing=draft?{draft,dirty}:null;saveLocal()}
-let persistTimer=null;
-function touch(){dirty=true;confirmDiscard=false;clearTimeout(persistTimer);persistTimer=setTimeout(persistDraft,400)}
-function renderEdit(){
-  const d=draft,orig=d.id?byId(d.id):null;
-  return `<div class="stack view-in"><div><button class="linkbtn" data-act="cancel-edit" style="display:inline-flex;align-items:center;gap:4px">${ic('back')}Back</button>
-  <h1 style="margin-top:4px">${d.id?'Edit':'New'} estimate <span class="muted" style="font-size:22px">#${d.num}</span></h1></div>
-  ${orig&&orig.status!=='draft'?`<div class="notice">${esc(first(orig.client.name))} already has the version you sent${orig.sentAt?` on ${fdate(orig.sentAt)}`:''}. If you change anything, Closer keeps a copy of that version and labels this one Revision ${orig.history.length+2}.</div>`:''}
-  <section class="sec"><h3>Customer</h3>
-    <div class="field"><label for="c-name">Name</label><input class="input" id="c-name" data-bind="client.name" value="${esc(d.client.name)}" placeholder="Customer name" autocomplete="off"></div>
-    <div class="suggest" id="cust-suggest"></div>
-    <div class="grid2"><div class="field"><label for="c-phone">Phone</label><input class="input" id="c-phone" type="tel" data-bind="client.phone" value="${esc(d.client.phone)}"></div>
-    <div class="field"><label for="c-email">Email</label><input class="input" id="c-email" type="email" data-bind="client.email" value="${esc(d.client.email)}"></div></div>
-    <div class="field"><label for="c-addr">Job address</label><input class="input" id="c-addr" data-bind="client.address" value="${esc(d.client.address)}"></div>
-    <div class="field"><label for="c-title">Job</label><input class="input" id="c-title" data-bind="title" value="${esc(d.title)}" placeholder="e.g. Roof leak repair, back porch"></div>
-  </section>
-  <section class="sec"><h3>Line items</h3>
-    <div id="lines" class="stack" style="gap:10px"></div>
-    <div class="chips">${S.items.map(it=>`<button class="chip add" data-act="add-item" data-id="${it.id}">+ ${esc(it.desc)}</button>`).join('')}<button class="chip add" data-act="add-line">+ Blank line</button></div>
-  </section>
-  <section class="sec" id="pricing"></section>
-  <div id="edit-msg"></div>
-  <div class="stickybar"><button class="btn" data-act="cancel-edit">${d.id?'Cancel':'Discard'}</button><button class="btn primary" data-act="save-edit">Save estimate</button></div>
-  </div>`;
-}
-function renderSuggest(){
-  const el=$('#cust-suggest');if(!el||!draft)return;
-  const q=(draft.client.name||'').trim().toLowerCase();
-  if(q.length<1){el.innerHTML='';return}
-  const m=customers().filter(c=>c.name.toLowerCase().includes(q)&&c.name.toLowerCase()!==q).slice(0,4);
-  el.innerHTML=m.map((c,i)=>`<button class="chip add" data-act="pick-cust" data-i="${esc(c.name)}">${esc(c.name)}${c.phone?' · '+esc(c.phone):''}</button>`).join('');
-}
-function renderLines(focusId){
-  const el=$('#lines');if(!el)return;
-  el.innerHTML=draft.lines.map((l,i)=>`<div class="line" data-line="${l.id}">
-    <div class="field"><label for="ld-${l.id}">Item ${i+1}</label><input class="input" id="ld-${l.id}" data-lf="desc" value="${esc(l.desc)}" placeholder="What you're doing or supplying"></div>
-    <div class="line-nums">
-      <div class="field"><label for="lq-${l.id}">Qty</label><input class="input num" id="lq-${l.id}" data-lf="qty" type="number" inputmode="decimal" min="0" step="any" value="${l.qty}"></div>
-      <div class="field"><label for="lu-${l.id}">Unit</label><input class="input" id="lu-${l.id}" data-lf="unit" value="${esc(l.unit)}" placeholder="hr, ft, ea"></div>
-      <div class="field"><label for="lp-${l.id}">Rate $</label><input class="input num" id="lp-${l.id}" data-lf="price" type="number" inputmode="decimal" min="0" step="0.01" value="${l.price||''}" placeholder="0.00"></div>
-      <button class="xbtn" data-act="del-line" data-id="${l.id}" aria-label="Remove item ${i+1}">×</button>
-    </div>
-    <div class="line-foot"><label class="taxbox"><input type="checkbox" data-lf="taxable" id="lt-${l.id}" ${l.taxable!==false?'checked':''}>Taxable</label><span class="line-amt" id="la-${l.id}" style="padding:0">${money((+l.qty||0)*(+l.price||0))}</span></div>
-  </div>`).join('');
-  if(focusId){const f=$('#ld-'+focusId);if(f)f.focus()}
-  renderTotals();
-}
-function renderPricing(){
-  const el=$('#pricing');if(!el)return;const d=draft;
-  el.innerHTML=`<h3>Pricing</h3>
-    <div class="grid2">
-      <div class="field"><div class="flabel-row"><label for="p-disc">Discount</label><span class="seg" role="group" aria-label="Discount type"><button data-act="disc-type" data-t="$" aria-pressed="${d.discountType!=='%'}">$</button><button data-act="disc-type" data-t="%" aria-pressed="${d.discountType==='%'}">%</button></span></div>
-        <input class="input num" id="p-disc" type="number" inputmode="decimal" min="0" step="0.01" data-bind="discount" value="${d.discount||''}" placeholder="0"></div>
-      <div class="field"><div class="flabel-row"><label for="p-tax">Tax %</label></div><input class="input num" id="p-tax" type="number" inputmode="decimal" min="0" max="30" step="0.01" data-bind="taxRate" value="${d.taxRate}"></div>
-    </div>
-    <div class="field"><div class="flabel-row"><label for="p-dep">Deposit</label><span class="seg" role="group" aria-label="Deposit type"><button data-act="dep-type" data-t="%" aria-pressed="${d.depositType!=='$'}">%</button><button data-act="dep-type" data-t="$" aria-pressed="${d.depositType==='$'}">$</button></span></div>
-      ${d.depositType==='$'?`<input class="input num" id="p-dep" type="number" inputmode="decimal" min="0" step="0.01" data-bind="depositAmt" value="${d.depositAmt||''}" placeholder="0.00">`:`<input class="input num" id="p-dep" type="number" inputmode="numeric" min="0" max="100" step="1" data-bind="depositPct" value="${d.depositPct}">`}</div>
-    <div class="card totals" id="totals"></div>
-    <div class="field"><label for="p-notes">Notes for the customer</label><textarea class="input" id="p-notes" data-bind="notes" placeholder="Scope, materials, what's not included">${esc(d.notes)}</textarea></div>`;
-  renderTotals();
-}
-function renderTotals(){
-  const el=$('#totals');if(!el)return;const t=calc(draft);
-  el.innerHTML=`<div><span class="muted">Subtotal</span><span>${money(t.sub)}</span></div>${t.disc?`<div><span class="muted">Discount</span><span>−${money(t.disc)}</span></div>`:''}<div><span class="muted">Tax${draft.taxRate?` on ${money(Math.max(0,t.taxSub-(t.sub?t.disc*t.taxSub/t.sub:0)))}`:''}</span><span>${money(t.tax)}</span></div><div class="grand"><span>Total</span><span>${money(t.total)}</span></div>${t.deposit>0?`<div><span class="muted">${depLabel(draft)}</span><span>${money(t.deposit)}</span></div>`:''}`;
-}
-function renderEditMsg(err){
-  const el=$('#edit-msg');if(!el)return;
-  if(confirmDiscard){el.innerHTML=`<div class="confirm"><b>Throw away your changes?</b><span class="muted" style="font-size:14.5px">${draft.id?'The saved estimate stays the way it was.':'This estimate hasn\'t been saved yet.'}</span><div class="row"><button class="btn danger" data-act="discard-yes">Throw away changes</button><button class="btn" data-act="discard-no">Keep editing</button></div></div>`;el.scrollIntoView({block:'nearest',behavior:'smooth'});return}
-  el.innerHTML=err?`<p class="err" role="alert">${esc(err)}</p>`:'';
-}
-
-/* ---------- settings ---------- */
-function renderSettings(){
-  const b=S.biz;
-  return `<div class="stack view-in"><h1>Settings</h1>${banners()}
-  ${renderAccount()}
-  ${cloudOK&&!S.sample?`<section class="sec"><h3>Plan</h3><div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span>${isPro?'<b>Closer Pro</b> · unlimited estimates':`<b>Free</b> · ${usedThisMonth()} of ${FREE_LIMIT} estimates this month`}</span><button class="btn sm ${isPro?'':'primary'}" data-act="nav" data-v="upgrade">${isPro?'Plan details':'Upgrade to Pro'}</button></div></section>`:''}
-  <form id="bizform" class="stack" style="gap:12px" novalidate>
-    <h3>Your business</h3>
-    <div class="row" style="align-items:center">${b.logo?`<img class="logo-prev" src="${b.logo}" alt="Your logo">`:''}<label class="btn sm filebtn" style="flex:0 1 auto">${b.logo?'Change logo':'Add your logo'}<input type="file" id="logo-file" accept="image/*"></label>${b.logo?`<button class="btn danger sm" style="flex:0 1 auto" data-act="logo-remove">Remove</button>`:''}</div>
-    <div class="field"><label for="b-name">Business name</label><input class="input" id="b-name" value="${esc(b.name)}" maxlength="80"></div>
-    <div class="grid2"><div class="field"><label for="b-owner">Your name</label><input class="input" id="b-owner" value="${esc(b.owner)}" maxlength="60"></div>
-    <div class="field"><label for="b-phone">Phone</label><input class="input" id="b-phone" type="tel" value="${esc(b.phone)}"></div></div>
-    <div class="grid2"><div class="field"><label for="b-email">Email</label><input class="input" id="b-email" type="email" value="${esc(b.email)}"></div>
-    <div class="field"><label for="b-lic">License #</label><input class="input" id="b-lic" value="${esc(b.license)}"></div></div>
-    <div class="field"><label for="b-addr">City / service area</label><input class="input" id="b-addr" value="${esc(b.address)}"></div>
-    <h3>Defaults</h3>
-    <div class="grid2"><div class="field"><label for="b-tax">Tax %</label><input class="input num" id="b-tax" type="number" step="0.01" min="0" max="30" value="${b.taxRate}"></div>
-    <div class="field"><label for="b-dep">Deposit %</label><input class="input num" id="b-dep" type="number" step="1" min="0" max="100" value="${b.depositPct}"></div></div>
-    <div class="grid2"><div class="field"><label for="b-fu">Follow up after (days)</label><input class="input num" id="b-fu" type="number" min="1" max="30" value="${b.followDays}"></div>
-    <div class="field"><label for="b-valid">Estimates valid for (days)</label><input class="input num" id="b-valid" type="number" min="1" max="365" value="${b.validDays}"></div></div>
-    <div class="field"><label for="b-next">Next estimate number</label><input class="input num" id="b-next" type="number" min="1" value="${Math.max(b.nextNum,maxNum()+1)}"></div>
-    <div class="field"><label for="b-terms">Terms printed on every estimate</label><textarea class="input" id="b-terms" maxlength="600">${esc(b.terms)}</textarea></div>
-    <p class="muted" style="font-size:13.5px">Tax rules differ by state. Many states tax materials but not labor. Uncheck "Taxable" on any line that shouldn't be taxed, and check your state's rules.</p>
-    <p class="err" id="biz-err" role="alert"></p>
-    <button class="btn primary" type="submit">Save business details</button>
-  </form>
-  <section class="sec"><h3>Saved items</h3><p class="muted" style="font-size:14px;margin-top:-4px">One-tap buttons when you build an estimate.</p>
-    <div class="list">${S.items.length?S.items.map(it=>`<div class="qrow" style="grid-template-columns:1fr auto auto;align-items:center"><span class="who">${esc(it.desc)}${it.taxable===false?' <span class="muted" style="font-size:13px;font-weight:500">· not taxed</span>':''}</span><span class="num muted">${money(it.price)}${it.unit?'/'+esc(it.unit):''}</span><button class="xbtn" style="margin:0;align-self:center" data-act="del-item" data-id="${it.id}" aria-label="Remove ${esc(it.desc)}">×</button></div>`).join(''):'<div class="empty">No saved items yet.</div>'}</div>
-    <form id="itemform" class="card stack" style="gap:10px" novalidate>
-      <div class="field"><label for="i-desc">Item</label><input class="input" id="i-desc" placeholder="e.g. Pressure washing" maxlength="80"></div>
-      <div class="grid2"><div class="field"><label for="i-unit">Unit</label><input class="input" id="i-unit" placeholder="hr, ft, sq, ea, job" maxlength="12"></div>
-      <div class="field"><label for="i-price">Rate $</label><input class="input num" id="i-price" type="number" inputmode="decimal" step="0.01" min="0"></div></div>
-      <label class="taxbox"><input type="checkbox" id="i-tax" checked>Taxable</label>
-      <p class="err" id="item-err" role="alert"></p>
-      <button class="btn" type="submit">${ic('plus')}Add saved item</button>
-    </form>
-  </section>
-  <section class="sec"><h3>Backup and restore</h3>
-    <p class="muted" style="font-size:14px;margin-top:-4px">Your estimates live on this device only. Back them up regularly, especially before changing phones.</p>
-    <div class="row"><button class="btn" data-act="export">${ic('copy')}Copy backup</button>${!inFrame?'<button class="btn" data-act="export-file">Save backup file</button>':''}</div>
-    <div class="card stack" style="gap:10px">
-      <div class="field"><label for="restore-text">Restore from a backup</label><textarea class="input" id="restore-text" placeholder="Paste a backup here" style="font-family:var(--f-mono);font-size:12.5px"></textarea></div>
-      <div class="row"><label class="btn filebtn">Choose backup file<input type="file" id="restore-file" accept=".json,application/json,text/plain"></label><button class="btn" data-act="restore-check">Restore</button></div>
-      <div id="restore-msg"></div>
-    </div>
-  </section>
-  ${cloudOK?`<section class="sec"><h3>Help</h3><div class="row"><a class="btn sm" href="support.html">Get help or send feedback</a><a class="btn sm" href="privacy.html">Privacy policy</a></div></section>`:''}
-  <section class="sec"><h3>Start over</h3>
-    <div class="row"><button class="btn" data-act="sample">Load examples</button><button class="btn danger" data-act="clear">Delete all estimates</button></div>
-    <div id="clear-msg"></div>
-  </section></div>`;
-}
-
-
-/* ---------- cloud: accounts, backup, approval links (Supabase) ---------- */
-const SB_URL='https://hpzkqkzezexadxtpvbgq.supabase.co';
-const SB_KEY='sb_publishable_GnIs8TH7qyCbAXikhlH1_g_SBP8laDB';
-const SKEY='closer.session';
-const cloudOK=!inFrame;
-let session=null,syncState='off',pushTimer=null,syncErr='',lastSynced=null,recoveryMode=false,confirmDeleteAcct=false;
-const PAY_LINK='https://buy.stripe.com/6oU6oG1Ra4XB4HqbB29ws00';
-const PORTAL_LINK='https://billing.stripe.com/p/login/6oU6oG1Ra4XB4HqbB29ws00';
-const FREE_LIMIT=5,PRO_PRICE='$12';
-let isPro=false;
-const PUBLIC_SITE='https://kamwebdes.github.io/closer/';
-const siteURL=()=>/^https?:$/.test(location.protocol)&&!/localhost$/.test(location.hostname)?location.origin+location.pathname.replace(/[^/]*$/,''):PUBLIC_SITE;
-try{session=JSON.parse(localStorage.getItem(SKEY)||'null')}catch(e){session=null}
-if(!cloudOK)session=null;
-isPro=!!(session&&S.planCache&&S.planCache.uid===session.user.id&&S.planCache.pro);
-function setSession(x){session=x;try{x?localStorage.setItem(SKEY,JSON.stringify(x)):localStorage.removeItem(SKEY)}catch(e){}}
-function fromTokenResp(d){return {access_token:d.access_token,refresh_token:d.refresh_token,expires_at:d.expires_at||Math.floor(Date.now()/1000)+(d.expires_in||3600),user:{id:d.user&&d.user.id,email:d.user&&d.user.email}}}
-async function rawFetch(path,opt){
-  opt=opt||{};const h=Object.assign({'apikey':SB_KEY,'Content-Type':'application/json'},opt.headers||{});
-  if(opt.token)h.Authorization='Bearer '+opt.token;
-  let r;
-  try{r=await fetch(SB_URL+path,{method:opt.method||'GET',headers:h,body:opt.body!==undefined?JSON.stringify(opt.body):undefined})}
-  catch(e){const er=new Error('No connection. Check your internet and try again.');er.offline=true;throw er}
-  const txt=await r.text();let data=null;try{data=txt?JSON.parse(txt):null}catch(e){data=txt}
-  if(!r.ok){const m=(data&&(data.msg||data.message||data.error_description||data.error))||('Something went wrong (error '+r.status+').');const er=new Error(m);er.status=r.status;throw er}
-  return data;
-}
-async function accessToken(){
-  if(!session)throw new Error('Sign in first in Settings.');
-  if(session.expires_at*1000-Date.now()<90000){
-    try{const d=await rawFetch('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:{refresh_token:session.refresh_token}});setSession(fromTokenResp(d))}
-    catch(e){if(!e.offline){setSession(null);syncState='off';renderTop();throw new Error('You were signed out. Sign in again in Settings.')}throw e}
-  }
-  return session.access_token;
-}
-async function api(path,opt){return rawFetch(path,Object.assign({},opt||{},{token:await accessToken()}))}
-function friendlyAuth(m){m=String(m||'');
-  if(/invalid login|invalid credentials/i.test(m))return 'That email and password don\'t match.';
-  if(/already registered|already exists/i.test(m))return 'That email already has an account. Sign in instead.';
-  if(/password/i.test(m)&&/(6|8|characters|weak|short)/i.test(m))return 'Use a longer password (at least 8 characters).';
-  if(/not confirmed/i.test(m))return 'Confirm your email first (check your inbox), then sign in.';
-  if(/rate limit|too many/i.test(m))return 'Too many tries. Wait a few minutes and try again.';
-  if(/signups not allowed|signup.*disabled/i.test(m))return 'New sign-ups are turned off for this app right now.';
-  return m}
-function payload(){return {biz:S.biz,items:S.items,quotes:S.quotes,updatedAt:S.updatedAt||Date.now()}}
-async function push(){
-  if(!session)return;clearTimeout(pushTimer);syncState='syncing';renderTop();
-  const at=S.updatedAt||Date.now();
-  try{await api('/rest/v1/closer_data?on_conflict=user_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:{user_id:session.user.id,data:payload(),updated_at:new Date().toISOString()}});
-    S.syncedAt=at;saveLocal();syncState='ok';syncErr='';lastSynced=Date.now()}
-  catch(e){syncState=e.offline?'offline':'error';syncErr=e.message}
-  renderTop();
-}
-function schedulePush(){if(!session)return;clearTimeout(pushTimer);pushTimer=setTimeout(push,1500)}
-async function pull(){const rows=await api('/rest/v1/closer_data?select=data,updated_at&user_id=eq.'+encodeURIComponent(session.user.id));return rows&&rows[0]?rows[0].data:null}
-function blankBiz(){return {name:'',owner:'',phone:'',email:session&&session.user.email||'',license:'',address:'',logo:'',taxRate:0,depositPct:30,followDays:3,validDays:30,nextNum:1001,terms:'Deposit due to schedule the job. Balance due on completion.'}}
-async function firstSync(){
-  syncState='syncing';renderTop();
-  const remote=await pull();
-  if(remote&&Array.isArray(remote.quotes)){
-    const ids=new Set(remote.quotes.map(q=>q.id));
-    const extra=(S.sample?[]:S.quotes).filter(q=>!ids.has(q.id));
-    const keep=S.editing;
-    S=normalize({v:1,sample:false,editing:keep,biz:remote.biz,items:remote.items||[],quotes:remote.quotes.concat(extra)});
-  }else if(S.sample){
-    const items=S.items;S=normalize({v:1,sample:false,editing:null,biz:blankBiz(),items,quotes:[]});
-  }
-  S.updatedAt=Date.now();saveLocal();await push();
-  try{await checkApprovals()}catch(e){}
-  await refreshPlan();
-}
-async function syncNow(manual){
-  if(!session||view==='edit')return;
-  syncState='syncing';renderTop();
-  try{
-    const remote=await pull();
-    const pending=(S.updatedAt||0)>(S.syncedAt||0);
-    if(remote&&(remote.updatedAt||0)>(S.syncedAt||0)&&!pending){
-      const keep=S.editing;S=normalize({v:1,sample:false,editing:keep,biz:remote.biz,items:remote.items||[],quotes:remote.quotes||[]});
-      S.updatedAt=remote.updatedAt;S.syncedAt=remote.updatedAt;saveLocal();syncState='ok';lastSynced=Date.now();render();
-    }else if(pending||!remote){await push()}
-    else{syncState='ok';lastSynced=Date.now();renderTop()}
-    await checkApprovals();
-    const wasPro=isPro;await refreshPlan();if(wasPro!==isPro&&view!=='edit')render();
-    if(manual)toast(syncState==='ok'?'Everything is backed up':syncErr||'Couldn\'t sync');
-  }catch(e){syncState=e.offline?'offline':'error';syncErr=e.message;renderTop();if(manual)toast(e.message)}
-}
-async function checkApprovals(){
-  if(!session)return;
-  const rows=await api('/rest/v1/shared_estimates?select=token,quote_id,status,customer_name,responded_at&status=neq.open');
-  const msgs=[];
-  for(const r of rows||[]){
-    const q=S.quotes.find(x=>x.id===r.quote_id&&x.shareToken===r.token);
-    if(!q||q.responseSeen===r.responded_at)continue;
-    q.responseSeen=r.responded_at;q.decidedAt=Date.parse(r.responded_at)||Date.now();q.snoozeUntil=null;
-    if(r.status==='approved'){q.status='won';q.approvedBy=r.customer_name;q.declinedBy=null;msgs.push(`${r.customer_name} approved #${q.num} (${money(calc(q).total)})`)}
-    else{q.status='lost';q.declinedBy=r.customer_name;q.approvedBy=null;msgs.push(`${r.customer_name} declined #${q.num}`)}
-  }
-  if(msgs.length){save();if(view!=='edit')render();toast(msgs.join(' · '))}
-}
-function randomToken(){const b=new Uint8Array(18);crypto.getRandomValues(b);return btoa(String.fromCharCode.apply(null,b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
-function approveLink(t){return siteURL()+'approve.html?t='+t}
-function linkMsg(q){return `Hi ${first(q.client.name)}, here's your estimate #${q.num} for ${q.title}: ${money(calc(q).total)} total. You can look it over and approve it here: ${approveLink(q.shareToken)} – ${sig()}, ${S.biz.name}`}
-function snapshot(q){
-  const t=calc(q);
-  return {biz:{name:S.biz.name,phone:S.biz.phone,email:S.biz.email,address:S.biz.address,license:S.biz.license,logo:S.biz.logo||''},
-    num:q.num,rev:q.history.length+1,date:q.sentAt||Date.now(),validUntil:validUntil(q),client:q.client,title:q.title,
-    lines:q.lines.map(l=>({desc:l.desc,qty:+l.qty||0,unit:l.unit||'',price:+l.price||0,amount:r2((+l.qty||0)*(+l.price||0)),taxable:l.taxable!==false})),
-    totals:{sub:r2(t.sub),disc:r2(t.disc),tax:r2(t.tax),total:r2(t.total),deposit:r2(t.deposit)},
-    discountLabel:q.discountType==='%'?`Discount (${+q.discount}%)`:'Discount',taxLabel:`Tax (${+q.taxRate||0}%)`,depositLabel:depLabel(q),
-    notes:q.notes||'',terms:S.biz.terms||''};
-}
-function syncLine(){
-  if(syncState==='syncing')return 'Backing up…';
-  if(syncState==='offline')return 'You\'re offline. Changes are saved on this phone and will back up when you\'re online again.';
-  if(syncState==='error')return 'Backup problem: '+syncErr;
-  if(lastSynced)return 'Backed up automatically · last synced '+new Date(lastSynced).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-  return 'Backed up automatically.';
-}
-function renderTop(){
-  const el=$('#topright');if(!el)return;
-  if(!cloudOK){el.innerHTML='';return}
-  if(!session){el.innerHTML=`<button class="btn sm" data-act="nav" data-v="settings">Sign in</button>`;return}
-  const map={ok:['Backed up','var(--good)'],syncing:['Syncing…','var(--muted)'],offline:['Offline','var(--warn)'],error:['Not backed up','var(--bad)'],off:['','var(--muted)']};
-  const [txt,col]=map[syncState]||map.off;
-  el.innerHTML=txt?`<button class="chip" data-act="nav" data-v="settings" style="color:${col};border-color:currentColor">${txt}</button>`:'';
-}
-function renderAccount(){
-  if(!cloudOK)return `<section class="sec"><h3>Account and backup</h3><div class="card muted" style="font-size:14.5px">Accounts, automatic backup and customer approval links work in the installed app at your website, not in this preview.</div></section>`;
-  if(session&&recoveryMode)return `<section class="sec"><h3>Choose a new password</h3>
-  <form id="passform" class="card stack" style="gap:10px" novalidate>
-    <p class="muted" style="font-size:14.5px">Signed in as <b>${esc(session.user.email)}</b>. Pick a new password for your account.</p>
-    <div class="field"><label for="np">New password</label><input class="input" id="np" type="password" autocomplete="new-password" minlength="8"></div>
-    <div id="pass-msg"></div>
-    <button class="btn primary" type="submit">Save new password</button>
-  </form></section>`;
-  if(session)return `<section class="sec"><h3>Account and backup</h3><div class="card stack" style="gap:10px"><p>Signed in as <b>${esc(session.user.email)}</b></p><p class="muted" style="font-size:14.5px">${esc(syncLine())}</p><div class="row"><button class="btn sm" data-act="sync-now">Sync now</button><button class="btn sm" data-act="sign-out">Sign out</button></div>
-  ${confirmDeleteAcct?`<div class="confirm"><b>Delete your account for good?</b><span class="muted" style="font-size:14.5px">This permanently deletes your account, every estimate and saved item, and turns off any approval links you've sent. It can't be undone. Type DELETE to confirm.</span><input class="input" id="del-confirm" autocomplete="off" placeholder="DELETE"><div id="del-msg"></div><div class="row"><button class="btn danger" data-act="acct-delete-yes">Delete my account</button><button class="btn" data-act="acct-delete-no">Keep my account</button></div></div>`:`<button class="linkbtn" style="color:var(--bad);align-self:flex-start" data-act="acct-delete">Delete account</button>`}
-  </div></section>`;
-  return `<section class="sec"><h3>Account and backup</h3>
-  <form id="authform" class="card stack" style="gap:10px" novalidate>
-    <p class="muted" style="font-size:14.5px">Sign in to back up your estimates automatically, use Closer on more than one device, and send customers a link to approve estimates.</p>
-    <div class="field"><label for="a-email">Email</label><input class="input" id="a-email" type="email" autocomplete="email" inputmode="email"></div>
-    <div class="field"><label for="a-pass">Password</label><input class="input" id="a-pass" type="password" autocomplete="current-password" minlength="8"></div>
-    <div id="auth-msg"></div>
-    <div class="row"><button class="btn primary" type="submit" data-mode="in">Sign in</button><button class="btn" type="button" data-act="sign-up">Create account</button></div>
-    <button class="linkbtn" type="button" style="align-self:flex-start" data-act="forgot">Forgot your password?</button>
-    <p class="muted" style="font-size:13px">By creating an account you agree to the <a href="privacy.html" style="color:inherit">privacy policy</a>.</p>
-  </form></section>`;
-}
-
-function friendlyLinkErr(m){m=String(m||'');if(/expired|invalid/i.test(m))return 'That email link has expired or was already used. Request a new one in Settings.';return m.replace(/\+/g,' ')}
-async function handleAuthHash(){
-  if(!cloudOK||!location.hash||location.hash.length<2)return false;
-  const p=new URLSearchParams(location.hash.slice(1));
-  const clean=()=>{try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}};
-  if(p.get('error')||p.get('error_description')){clean();view='settings';render();toast(friendlyLinkErr(p.get('error_description')||p.get('error')));return true}
-  const at=p.get('access_token');if(!at)return false;
-  clean();
-  try{
-    const u=await rawFetch('/auth/v1/user',{token:at});
-    setSession({access_token:at,refresh_token:p.get('refresh_token'),expires_at:+p.get('expires_at')||Math.floor(Date.now()/1000)+(+p.get('expires_in')||3600),user:{id:u.id,email:u.email}});
-    if(p.get('type')==='recovery'){recoveryMode=true;view='settings';render();toast('Choose a new password below.');return true}
-    await firstSync();view=S.biz.name?'home':'settings';render();toast('Email confirmed. You\'re signed in and backed up.');return true;
-  }catch(e){view='settings';render();toast(e.message);return true}
-}
-async function sendReset(){
-  const email=($('#a-email').value||'').trim();
-  if(!/^\S+@\S+\.\S+$/.test(email)){authMsg('Type your email above, then tap "Forgot your password?" again.',true);return}
-  authBusy(true);
-  try{await rawFetch('/auth/v1/recover?redirect_to='+encodeURIComponent(siteURL()),{method:'POST',body:{email}});authMsg('If that email has an account, we sent a link to reset the password. Check your spam folder too.')}
-  catch(e){authMsg(friendlyAuth(e.message),true)}
-  authBusy(false);
-}
-async function savePassword(){
-  const np=$('#np').value||'',el=$('#pass-msg');
-  if(np.length<8){el.innerHTML='<p class="err">Use at least 8 characters.</p>';return}
-  try{await api('/auth/v1/user',{method:'PUT',body:{password:np}});recoveryMode=false;render();toast('Password updated')}
-  catch(e){el.innerHTML=`<p class="err">${esc(friendlyAuth(e.message))}</p>`}
-}
-async function deleteAccount(){
-  const v=($('#del-confirm').value||'').trim(),el=$('#del-msg');
-  if(v!=='DELETE'){el.innerHTML='<p class="err">Type DELETE in capital letters to confirm.</p>';return}
-  document.querySelectorAll('[data-act="acct-delete-yes"],[data-act="acct-delete-no"]').forEach(b=>b.disabled=true);
-  try{
-    await api('/rest/v1/rpc/delete_my_account',{method:'POST',body:{}});
-    setSession(null);syncState='off';confirmDeleteAcct=false;
-    try{localStorage.removeItem(KEY)}catch(e){}
-    S=normalize({v:1,sample:false,editing:null,biz:{},items:[],quotes:[]});draft=null;dirty=false;saveLocal();
-    go('home');toast('Your account and all its estimates were deleted.');
-  }catch(e){document.querySelectorAll('[data-act="acct-delete-yes"],[data-act="acct-delete-no"]').forEach(b=>b.disabled=false);el.innerHTML=`<p class="err">${esc(e.message)}</p>`}
-}
-
-function authMsg(t,bad){const el=$('#auth-msg');if(el)el.innerHTML=t?`<p class="${bad?'err':'muted'}" style="font-size:14.5px">${esc(t)}</p>`:''}
-function authBusy(b){document.querySelectorAll('#authform button').forEach(x=>x.disabled=b)}
-async function doAuth(mode){
-  const email=($('#a-email').value||'').trim(),pass=$('#a-pass').value||'';
-  if(!/^\S+@\S+\.\S+$/.test(email)){authMsg('Enter a valid email address.',true);return}
-  if(pass.length<8){authMsg('Use a password with at least 8 characters.',true);return}
-  authBusy(true);authMsg(mode==='up'?'Creating your account…':'Signing in…');
-  try{
-    if(mode==='up'){const r=await signUpReq(email,pass);if(r==='confirm'){authBusy(false);authMsg('Almost done. We emailed you a link to confirm your address. Tap it and you\'ll be signed in. Check your spam folder if you don\'t see it.');return}}
-    else await signInReq(email,pass);
-    render();toast(S.biz.name?'Signed in. Your estimates are backed up.':'Signed in. Add your business details below.');
-  }catch(e){authBusy(false);authMsg(friendlyAuth(e.message),true)}
-}
-async function signInReq(email,password){const d=await rawFetch('/auth/v1/token?grant_type=password',{method:'POST',body:{email,password}});setSession(fromTokenResp(d));await firstSync()}
-async function signUpReq(email,password){const d=await rawFetch('/auth/v1/signup?redirect_to='+encodeURIComponent(siteURL()),{method:'POST',body:{email,password}});if(d&&d.access_token){setSession(fromTokenResp(d));await firstSync();return 'in'}if(d&&d.session&&d.session.access_token){setSession(fromTokenResp(Object.assign({user:d.user},d.session)));await firstSync();return 'in'}return 'confirm'}
-async function shareQuote(q,btn){
-  if(!session){go('settings');toast('Sign in first to send approval links.');return}
-  if(!S.biz.name){go('settings');toast('Add your business name first. Customers will see it.');return}
-  if(btn){btn.disabled=true;btn.textContent='Making link…'}
-  try{
-    if(!q.sentAt)q.sentAt=Date.now();
-    if(!q.shareToken)q.shareToken=randomToken();
-    await api('/rest/v1/shared_estimates?on_conflict=token',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:{token:q.shareToken,user_id:session.user.id,quote_id:q.id,doc:snapshot(q),status:'open',customer_name:null,responded_at:null}});
-    if(q.status==='draft')q.status='sent';
-    q.responseSeen=null;q.linkSharedAt=Date.now();save();render();
-    toast('Approval link ready. Copy the message below and text it.');
-  }catch(e){if(btn){btn.disabled=false;btn.textContent='Send approval link'}toast(e.message)}
-}
-function shareCard(q){
-  if(!cloudOK||!q.shareToken||q.status!=='sent')return '';
-  const m=linkMsg(q);
-  return `<div class="card stack" style="gap:10px;border-left:4px solid var(--info)"><b>Approval link</b>
-  <div class="msg" style="overflow-wrap:anywhere">${esc(m)}</div>
-  <div class="row">${q.client.phone?`<a class="btn primary sm" href="${esc(smsHref(q.client.phone,m))}" data-act="sms-link">${ic('chat')}Text it</a>`:''}<button class="btn ${q.client.phone?'':'primary'} sm" data-act="copy-link" data-id="${q.id}">${ic('copy')}Copy message</button><button class="btn sm" data-act="check-resp">Check for an answer</button></div>
-  <p class="muted" style="font-size:13.5px">When ${esc(first(q.client.name))} approves or declines, Closer updates this estimate on its own.${q.history.length?' If you edit the estimate, tap Update link so they see the new version.':''}</p>
-  <button class="btn sm" data-act="share" data-id="${q.id}">Update link with latest version</button></div>`;
-}
-
-
-/* ---------- plan: free limit and Pro ---------- */
-function monthStartTs(){const d=new Date();return new Date(d.getFullYear(),d.getMonth(),1).getTime()}
-function usedThisMonth(){const m=monthStartTs();return S.quotes.filter(q=>q.created>=m).length}
-function limitsOn(){return cloudOK&&!S.sample&&!isPro}
-function canCreate(){return !limitsOn()||usedThisMonth()<FREE_LIMIT}
-async function refreshPlan(){
-  if(!session){isPro=false;return}
-  try{
-    const rows=await api('/rest/v1/pro_users?select=active_until&user_id=eq.'+encodeURIComponent(session.user.id));
-    const r=rows&&rows[0];
-    const was=isPro;
-    isPro=!!(r&&(!r.active_until||Date.parse(r.active_until)+DAY>Date.now()));
-    S.planCache={uid:session.user.id,pro:isPro};saveLocal();
-    if(isPro&&!was){toast('Closer Pro is active. Thanks for upgrading!')}
-  }catch(e){}
-}
-function payLink(){
-  let u=PAY_LINK;const p=[];
-  if(session){p.push('prefilled_email='+encodeURIComponent(session.user.email));p.push('client_reference_id='+encodeURIComponent(session.user.id))}
-  return p.length?u+'?'+p.join('&'):u;
-}
-function planChip(){
-  if(!cloudOK||S.sample)return '';
-  if(isPro)return `<div class="banner" style="background:var(--good-soft)"><span><b>Closer Pro</b> · unlimited estimates</span></div>`;
-  const u=usedThisMonth(),left=Math.max(0,FREE_LIMIT-u);
-  return `<div class="banner" style="${left===0?'background:var(--warn-soft)':''}"><span>Free plan: <b>${u} of ${FREE_LIMIT}</b> estimates used this month.${left===0?' You\'ve hit the limit.':''}</span><button data-act="nav" data-v="upgrade">Upgrade</button></div>`;
-}
-function renderUpgrade(){
-  const u=usedThisMonth();
-  let h=`<div class="stack view-in"><div><button class="linkbtn" data-act="nav" data-v="home" style="display:inline-flex;align-items:center;gap:4px">${ic('back')}Home</button>
-  <h1 style="margin-top:4px">Closer Pro</h1></div>`;
-  if(isPro){return h+`<div class="card stack" style="gap:10px;border-left:4px solid var(--good)"><b>You're on Closer Pro.</b><p class="muted">Unlimited estimates, approval links and automatic backup. Thanks for supporting Closer.</p><a class="btn" style="text-decoration:none" href="${esc(PORTAL_LINK+(session?'?prefilled_email='+encodeURIComponent(session.user.email):''))}" target="_blank" rel="noopener">Manage subscription</a>
-    <p class="muted" style="font-size:13.5px">Update your card, download receipts or cancel. Stripe emails you a code to sign in, using the email you paid with. If you cancel, Pro stays on until the end of the month you paid for.</p></div></div>`}
-  h+=`${u>=FREE_LIMIT?`<div class="notice">You've used all ${FREE_LIMIT} free estimates this month. Upgrade to keep going, or wait until the 1st for ${FREE_LIMIT} more.</div>`:''}
-  <div class="card stack" style="gap:14px">
-    <div style="display:flex;align-items:baseline;gap:8px"><span style="font-family:var(--f-display);font-size:44px;font-weight:700;line-height:1">${PRO_PRICE}</span><span class="muted">per month · cancel anytime</span></div>
-    <div class="stack" style="gap:8px;font-size:16px">
-      <div><span class="ck">${ic('check')}</span> Unlimited estimates <span class="muted">(free plan: ${FREE_LIMIT} a month)</span></div>
-      <div><span class="ck">${ic('check')}</span> Approval links customers tap to approve</div>
-      <div><span class="ck">${ic('check')}</span> Automatic backup across your devices</div>
-      <div><span class="ck">${ic('check')}</span> Follow-up reminders with ready-to-send texts</div>
-    </div>
-    <p class="muted" style="font-size:14.5px">One extra job won from a follow-up pays for years of Closer.</p>
-    ${session?`<a class="btn primary" style="min-height:54px;font-size:17px;text-decoration:none" href="${esc(payLink())}" target="_blank" rel="noopener">Upgrade to Pro</a>
-    <p class="muted" style="font-size:13.5px">You'll pay securely through Stripe. Use the same email as your Closer account (<b>${esc(session.user.email)}</b>). Pro turns on by itself within a minute of paying. Come back to Closer when you're done.</p>
-    <button class="btn" data-act="check-plan">I already paid. Check again</button>`
-    :`<div class="banner"><span>Create a free account first, so your upgrade is linked to you.</span><button data-act="nav" data-v="settings">Create account</button></div>`}
-  </div></div>`;
-  return h;
-}
-
-/* ---------- nav & render ---------- */
-function renderNav(){
-  const items=[['home','Home','home'],['quotes','Estimates','list'],['new','New','plus'],['settings','Settings','gear']];
-  const cur=view==='view'?'quotes':view==='edit'?'new':view==='upgrade'?'home':view;
-  $('#navin').innerHTML=items.map(([k,l,i])=>k==='new'?`<button class="newbtn" data-act="new" ${cur==='new'?'aria-current="page"':''}><span class="plus">${ic('plus')}</span>${l}</button>`:`<button data-act="nav" data-v="${k}" ${cur===k?'aria-current="page"':''}>${ic(i)}${l}</button>`).join('');
-}
-function render(){
-  const v=$('#view');
-  v.innerHTML=view==='home'?renderHome():view==='quotes'?renderQuotes():view==='view'?renderView():view==='edit'?renderEdit():view==='upgrade'?renderUpgrade():renderSettings();
-  if(view==='quotes')renderQList();
-  if(view==='edit'){renderLines();renderPricing();renderSuggest();renderEditMsg()}
-  renderNav();updateBadge();renderTop();
-}
-function go(v,id){
-  if(view==='edit'&&v!=='edit'&&draft){if(dirty)persistDraft();else closeDraft()}
-  view=v;if(id!==undefined)curId=id;confirmDel=false;confirmDiscard=false;if(v!=='view')asInvoice=false;render();window.scrollTo(0,0);
-}
-function closeDraft(){draft=null;dirty=false;S.editing=null;save()}
-
-/* ---------- actions ---------- */
-function setStatus(q,status){
-  const prev={status:q.status,decidedAt:q.decidedAt,sentAt:q.sentAt,snoozeUntil:q.snoozeUntil};
-  q.status=status;q.snoozeUntil=null;if(status==='won'||status==='lost')q.decidedAt=Date.now();if(status==='sent'&&!q.sentAt)q.sentAt=Date.now();
-  save();render();return prev;
-}
-function contentKey(q){return JSON.stringify([q.client,q.title,q.lines.map(l=>[l.desc,+l.qty,l.unit,+l.price,l.taxable!==false]),+q.discount,q.discountType,+q.taxRate,q.depositType,+q.depositPct,+q.depositAmt,q.notes])}
-function readFile(file,cb){const r=new FileReader();r.onload=()=>cb(r.result);r.onerror=()=>toast('Couldn\'t read that file.');r.readAsText(file)}
-function checkBackup(text){
-  let d;try{d=JSON.parse(text)}catch(e){return {err:'That doesn\'t look like a Closer backup. Paste the whole thing, starting with {'}}
-  if(!d||typeof d!=='object'||!d.biz||!Array.isArray(d.quotes))return {err:'That backup is missing estimates or business details.'};
-  return {data:d};
-}
-const A={
-  nav(el){go(el.dataset.v)},
-  open(el){go('view',el.dataset.id)},
-  new(){
-    if(!(S.editing&&S.editing.dirty)&&!canCreate()){go('upgrade');return}
-    if(S.editing&&S.editing.dirty){draft=S.editing.draft;dirty=true;go('edit');toast('Finish or throw away this estimate first.');return}
-    draft=newDraft();dirty=false;S.editing={draft,dirty};save();go('edit')},
-  resume(){draft=S.editing.draft;dirty=!!S.editing.dirty;go('edit')},
-  edit(el){
-    if(S.editing&&S.editing.dirty&&S.editing.draft.id!==el.dataset.id){draft=S.editing.draft;dirty=true;go('edit');toast('Finish or throw away this estimate first.');return}
-    const q=byId(el.dataset.id);draft=JSON.parse(JSON.stringify({id:q.id,num:q.num,client:q.client,title:q.title,lines:q.lines,discount:q.discount,discountType:q.discountType,taxRate:q.taxRate,depositType:q.depositType,depositPct:q.depositPct,depositAmt:q.depositAmt,notes:q.notes}));dirty=false;S.editing={draft,dirty};save();go('edit')},
-  'cancel-edit'(){
-    if(dirty){confirmDiscard=true;renderEditMsg();return}
-    const id=draft&&draft.id;closeDraft();id?go('view',id):go('home')},
-  'discard-yes'(){const id=draft&&draft.id;closeDraft();id?go('view',id):go('home');toast('Changes thrown away')},
-  'discard-no'(){confirmDiscard=false;renderEditMsg()},
-  'add-line'(){const l=line('',1,'',0);draft.lines.push(l);touch();renderLines(l.id)},
-  'add-item'(el){const it=S.items.find(x=>x.id===el.dataset.id);if(!it)return;
-    let tgt=draft.lines.find(l=>!l.desc&&!+l.price);
-    if(tgt)Object.assign(tgt,{desc:it.desc,unit:it.unit,price:it.price,taxable:it.taxable!==false,qty:tgt.qty||1});
-    else{tgt=line(it.desc,1,it.unit,it.price,it.taxable);draft.lines.push(tgt)}
-    touch();renderLines();const q=$('#lq-'+tgt.id);if(q){q.focus();q.select()}},
-  'del-line'(el){draft.lines=draft.lines.filter(l=>l.id!==el.dataset.id);if(!draft.lines.length)draft.lines.push(line('',1,'',0));touch();renderLines()},
-  'disc-type'(el){if(draft.discountType===el.dataset.t)return;draft.discountType=el.dataset.t;draft.discount=0;touch();renderPricing()},
-  'dep-type'(el){if(draft.depositType===el.dataset.t)return;draft.depositType=el.dataset.t;touch();renderPricing()},
-  'pick-cust'(el){const c=customers().find(x=>x.name===el.dataset.i);if(!c)return;draft.client=Object.assign({},c);
-    ['name','phone','email','address'].forEach(k=>{const m={name:'c-name',phone:'c-phone',email:'c-email',address:'c-addr'}[k];$('#'+m).value=draft.client[k]||''});
-    touch();renderSuggest();$('#c-title').focus()},
-  'save-edit'(){
-    const d=draft;
-    const lines=d.lines.filter(l=>String(l.desc).trim()||+l.price);
-    if(!d.client.name.trim()){renderEditMsg('Add the customer\'s name.');$('#c-name').focus();return}
-    if(!lines.length){renderEditMsg('Add at least one line item with a description or price.');return}
-    if(lines.some(l=>(+l.qty||0)<0||(+l.price||0)<0)){renderEditMsg('Quantities and rates can\'t be negative.');return}
-    if(d.discountType==='%'&&+d.discount>100){renderEditMsg('A percentage discount can\'t be more than 100%.');return}
-    if(d.depositType==='%'&&(+d.depositPct<0||+d.depositPct>100)){renderEditMsg('Deposit must be between 0 and 100%.');return}
-    if(+d.taxRate<0||+d.taxRate>30){renderEditMsg('Tax must be between 0 and 30%.');return}
-    d.lines=lines;d.client.name=d.client.name.trim();d.title=d.title.trim()||lines[0].desc||'Job';
-    let id;
-    if(d.id){
-      const q=byId(d.id);
-      if(q.status!=='draft'&&contentKey(q)!==contentKey(d)){q.history.push({replacedAt:Date.now(),sentAt:q.history.length?null:q.sentAt,total:calc(q).total,lines:JSON.parse(JSON.stringify(q.lines))})}
-      Object.assign(q,{client:d.client,title:d.title,lines:d.lines,discount:+d.discount||0,discountType:d.discountType,taxRate:+d.taxRate||0,depositType:d.depositType,depositPct:+d.depositPct||0,depositAmt:+d.depositAmt||0,notes:d.notes});
-      id=q.id;
-    }else{
-      if(!canCreate()){persistDraft();go('upgrade');toast('Your estimate is saved as a draft. Upgrade to finish it.');return}
-      let num=d.num;if(S.quotes.some(q=>q.num===num))num=maxNum()+1;
-      const q={id:uid(),num,client:d.client,title:d.title,lines:d.lines,discount:+d.discount||0,discountType:d.discountType,taxRate:+d.taxRate||0,depositType:d.depositType,depositPct:+d.depositPct||0,depositAmt:+d.depositAmt||0,notes:d.notes,status:'draft',created:Date.now(),sentAt:null,followUps:[],decidedAt:null,snoozeUntil:null,history:[]};
-      S.quotes.push(q);S.biz.nextNum=Math.max(S.biz.nextNum,num+1);id=q.id;
-    }
-    closeDraft();go('view',id);toast('Estimate saved');
-  },
-  send(el){const q=byId(el.dataset.id);copyText(sendMsg(q),'Message copied. Paste it into a text to your customer.');q.status='sent';q.sentAt=Date.now();save();render()},
-  'sms-send'(el,ev){const q=byId(el.dataset.id);q.status='sent';q.sentAt=Date.now();save();setTimeout(render,300);window.location.href=el.getAttribute('href')},
-  'copy-follow'(el){const q=byId(el.dataset.id);copyText(followMsg(q),'Follow-up copied. Tap "I sent it" after you send it.')},
-  'sms-follow'(el){window.location.href=el.getAttribute('href');toast('Tap "I sent it" once the text is sent.')},
-  'mark-follow'(el){const q=byId(el.dataset.id);q.followUps.push(Date.now());q.snoozeUntil=null;save();render();toast(`Logged. Closer will remind you again in ${S.biz.followDays} days.`,()=>{q.followUps.pop();save();render()})},
-  'snooze-short'(el){const q=byId(el.dataset.id);const prev=q.snoozeUntil;q.snoozeUntil=Date.now()+DAY;save();render();toast('Moved to tomorrow',()=>{q.snoozeUntil=prev;save();render()})},
-  snooze(el){const q=byId(el.dataset.id);const prev=q.snoozeUntil;q.snoozeUntil=Date.now()+14*DAY;save();render();toast('Closer will bring it back in 2 weeks',()=>{q.snoozeUntil=prev;save();render()})},
-  won(el){const q=byId(el.dataset.id);const prev=setStatus(q,'won');toast(`Won ${money(calc(q).total)} from ${first(q.client.name)}`,()=>{Object.assign(q,prev);save();render()})},
-  lost(el){const q=byId(el.dataset.id);const prev=setStatus(q,'lost');toast('Marked as lost',()=>{Object.assign(q,prev);save();render()})},
-  reopen(el){const q=byId(el.dataset.id);q.status=q.sentAt?'sent':'draft';q.decidedAt=null;q.snoozeUntil=null;asInvoice=false;save();render()},
-  'toggle-inv'(){asInvoice=!asInvoice;render()},
-  print(){try{window.print()}catch(e){}},
-  duplicate(el){
-    if(!canCreate()){go('upgrade');return}
-    if(S.editing&&S.editing.dirty){draft=S.editing.draft;dirty=true;go('edit');toast('Finish or throw away this estimate first.');return}
-    const q=byId(el.dataset.id);draft=newDraft();Object.assign(draft,JSON.parse(JSON.stringify({title:q.title,lines:q.lines,discount:q.discount,discountType:q.discountType,taxRate:q.taxRate,depositType:q.depositType,depositPct:q.depositPct,depositAmt:q.depositAmt,notes:q.notes})));
-    draft.lines.forEach(l=>l.id=uid());dirty=true;S.editing={draft,dirty};save();go('edit');toast('Copied the line items. Add the new customer.')},
-  del(){confirmDel=true;render()},
-  'del-no'(){confirmDel=false;render()},
-  'del-yes'(el){const i=S.quotes.findIndex(q=>q.id===el.dataset.id);const q=S.quotes[i];S.quotes.splice(i,1);save();go('quotes');toast(`Deleted #${q.num}`,()=>{S.quotes.splice(i,0,q);save();render()})},
-  filter(el){filter=el.dataset.f;render()},
-  'dismiss-sample'(){S.sample=false;save();render()},
-  'del-item'(el){const i=S.items.findIndex(x=>x.id===el.dataset.id);const it=S.items[i];S.items.splice(i,1);save();render();toast(`Removed “${it.desc}”`,()=>{S.items.splice(i,0,it);save();render()})},
-  'logo-remove'(){S.biz.logo='';save();render();toast('Logo removed')},
-  export(){copyText(JSON.stringify({app:'closer',exported:new Date().toISOString(),biz:S.biz,items:S.items,quotes:S.quotes},null,2),'Backup copied. Paste it into a note or email it to yourself.')},
-  'export-file'(){try{const blob=new Blob([JSON.stringify({app:'closer',exported:new Date().toISOString(),biz:S.biz,items:S.items,quotes:S.quotes},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='closer-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}catch(e){toast('Couldn\'t save a file here. Use Copy backup instead.')}},
-  'restore-check'(){const r=checkBackup($('#restore-text').value.trim());const el=$('#restore-msg');
-    if(r.err){el.innerHTML=`<p class="err">${esc(r.err)}</p>`;return}
-    pendingRestore=r.data;
-    el.innerHTML=`<div class="confirm"><b>Replace everything on this device?</b><span class="muted" style="font-size:14.5px">This backup has ${r.data.quotes.length} estimate${r.data.quotes.length===1?'':'s'} for ${esc(r.data.biz.name||'a business')}. Your current estimates will be replaced.</span><div class="row"><button class="btn danger" data-act="restore-yes">Replace and restore</button><button class="btn" data-act="restore-no">Cancel</button></div></div>`},
-  'restore-yes'(){if(!pendingRestore)return;const d=normalize({v:1,sample:false,editing:null,biz:pendingRestore.biz,items:pendingRestore.items||[],quotes:pendingRestore.quotes});S=d;pendingRestore=null;draft=null;dirty=false;save();go('home');toast('Backup restored')},
-  'restore-no'(){pendingRestore=null;$('#restore-msg').innerHTML=''},
-  sample(){S=normalize(seed());draft=null;dirty=false;save();go('home');toast('Examples loaded')},
-  clear(){$('#clear-msg').innerHTML=`<div class="confirm"><b>Delete every estimate and saved item?</b><span class="muted" style="font-size:14.5px">This can't be undone. Your business details stay. Copy a backup first if you might need them.</span><div class="row"><button class="btn danger" data-act="clear-yes">Delete everything</button><button class="btn" data-act="clear-no">Cancel</button></div></div>`},
-  'clear-no'(){$('#clear-msg').innerHTML=''},
-  'clear-yes'(){S.quotes=[];S.items=[];S.sample=false;S.editing=null;draft=null;dirty=false;save();go('home');toast('All estimates deleted')},
-  share(el){shareQuote(byId(el.dataset.id),el)},
-  'copy-link'(el){copyText(linkMsg(byId(el.dataset.id)),'Message copied. Paste it into a text to your customer.')},
-  'sms-link'(el){window.location.href=el.getAttribute('href')},
-  'check-resp'(){checkApprovals().then(()=>toast('Checked. No new answers yet.')).catch(e=>toast(e.message))},
-  'sign-up'(){doAuth('up')},
-  'check-plan'(){refreshPlan().then(()=>{render();if(!isPro)toast('Not active yet. Wait a minute and try again. If it still isn\'t on, message support.')})},
-  forgot(){sendReset()},
-  'acct-delete'(){confirmDeleteAcct=true;render();const i=$('#del-confirm');if(i)i.focus()},
-  'acct-delete-no'(){confirmDeleteAcct=false;render()},
-  'acct-delete-yes'(){deleteAccount()},
-  'sync-now'(){syncNow(true)},
-  'sign-out'(){signOutReq()},
-  undo(){if(undoFn){const f=undoFn;undoFn=null;$('#toast').hidden=true;f()}}
-};
-document.addEventListener('click',ev=>{const el=ev.target.closest('[data-act]');if(!el)return;const f=A[el.dataset.act];if(f){ev.preventDefault();f(el,ev)}});
-
-document.addEventListener('input',ev=>{
-  const t=ev.target;
-  if(t.id==='search'){query=t.value;renderQList();return}
-  if(!draft||view!=='edit')return;
-  if(t.dataset.bind){const path=t.dataset.bind.split('.');let o=draft;for(let i=0;i<path.length-1;i++)o=o[path[i]];
-    o[path[path.length-1]]=t.type==='number'?(t.value===''?0:parseFloat(t.value)):t.value;touch();renderTotals();if(t.id==='c-name')renderSuggest();renderEditMsg();return}
-  if(t.dataset.lf){const id=t.closest('[data-line]').dataset.line;const l=draft.lines.find(x=>x.id===id);if(!l)return;
-    l[t.dataset.lf]=t.type==='checkbox'?t.checked:t.type==='number'?(t.value===''?0:parseFloat(t.value)):t.value;touch();
-    const a=$('#la-'+id);if(a)a.textContent=money((+l.qty||0)*(+l.price||0));renderTotals()}
-});
-document.addEventListener('change',ev=>{
-  const t=ev.target;
-  if(t.id==='logo-file'&&t.files[0]){
-    const f=t.files[0];if(!/^image\//.test(f.type)){toast('Pick an image file.');return}
-    const rd=new FileReader();rd.onload=()=>{const img=new Image();img.onload=()=>{const max=320,s=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);S.biz.logo=c.toDataURL('image/png');save();render();toast('Logo added')};img.onerror=()=>toast('Couldn\'t open that image.');img.src=rd.result};rd.readAsDataURL(f);
-  }
-  if(t.id==='restore-file'&&t.files[0]){readFile(t.files[0],txt=>{$('#restore-text').value=txt;A['restore-check']()})}
-  if(t.type==='checkbox'&&t.dataset.lf&&draft){const id=t.closest('[data-line]').dataset.line;const l=draft.lines.find(x=>x.id===id);if(l){l.taxable=t.checked;touch();renderTotals()}}
-});
-async function signOutReq(){try{if(session)await rawFetch('/auth/v1/logout',{method:'POST',token:session.access_token})}catch(e){}setSession(null);syncState='off';isPro=false;render();toast('Signed out. Your estimates stay on this phone.')}
-document.addEventListener('submit',ev=>{
-  ev.preventDefault();const f=ev.target;
-  if(f.id==='authform'){doAuth('in');return}
-  if(f.id==='passform'){savePassword();return}
-  if(f.id==='bizform'){
-    const v=id=>$(id).value.trim(),n=id=>parseFloat($(id).value);const err=$('#biz-err');
-    if(!v('#b-name')){err.textContent='Add your business name.';return}
-    const tax=n('#b-tax'),dep=n('#b-dep'),fu=parseInt($('#b-fu').value,10),valid=parseInt($('#b-valid').value,10),next=parseInt($('#b-next').value,10);
-    if(!(tax>=0&&tax<=30)){err.textContent='Tax must be between 0 and 30%.';return}
-    if(!(dep>=0&&dep<=100)){err.textContent='Deposit must be between 0 and 100%.';return}
-    if(!(fu>=1&&fu<=30)){err.textContent='Follow-up reminder must be 1 to 30 days.';return}
-    if(!(valid>=1&&valid<=365)){err.textContent='Estimates must be valid for 1 to 365 days.';return}
-    const mx=maxNum();if(!(next>mx)){err.textContent=`Estimate #${mx} already exists. Use ${mx+1} or higher so numbers don't repeat.`;return}
-    Object.assign(S.biz,{name:v('#b-name'),owner:v('#b-owner'),phone:v('#b-phone'),email:v('#b-email'),license:v('#b-lic'),address:v('#b-addr'),taxRate:tax,depositPct:dep,followDays:fu,validDays:valid,nextNum:next,terms:$('#b-terms').value.trim()});
-    save();render();toast('Business details saved');
-  }
-  if(f.id==='itemform'){
-    const d=$('#i-desc').value.trim(),u=$('#i-unit').value.trim(),p=parseFloat($('#i-price').value),err=$('#item-err');
-    if(!d){err.textContent='Name the item.';return}
-    if(!(p>=0)){err.textContent='Add a rate (0 or more).';return}
-    S.items.push({id:uid(),desc:d,unit:u,price:p,taxable:$('#i-tax').checked});save();render();toast(`Saved “${d}”`);
-  }
-});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&view!=='edit'){render();if(session)syncNow()}});
-window.addEventListener('online',()=>{if(session)syncNow()});
-
-render();
-handleAuthHash().then(h=>{if(!h&&session)syncNow()});
+  var n=document.getElementById('nav');
+  function f(){n.classList.toggle('scrolled',window.scrollY>8)}
+  window.addEventListener('scroll',f,{passive:true});f();
+  if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
 })();
-</script>
-<script>
-if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 </script>
 </body>
 </html>

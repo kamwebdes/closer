@@ -1,6 +1,6 @@
 // Closer offline support. Bump VERSION whenever you upload changed files so phones pick them up.
-const VERSION = 'closer-v8';
-const SHELL = ['./', 'index.html', 'approve.html', 'privacy.html', 'support.html', 'manifest.webmanifest',
+const VERSION = 'closer-v10';
+const SHELL = ['./', 'index.html', 'app.html', 'approve.html', 'privacy.html', 'support.html', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -12,7 +12,7 @@ self.addEventListener('activate', e => {
 });
 function pageKey(url) {
   const f = url.pathname.split('/').pop();
-  return ['approve.html', 'privacy.html', 'support.html'].includes(f) ? f : 'index.html';
+  return ['app.html', 'approve.html', 'privacy.html', 'support.html'].includes(f) ? f : 'index.html';
 }
 self.addEventListener('fetch', e => {
   const req = e.request;
