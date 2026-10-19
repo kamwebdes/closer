@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#F3F4F6">
+<title>Your estimate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root{--bg:#F3F4F6;--surface:#fff;--line:#DCE0E6;--fg:#131921;--muted:#596373;--accent:#DB5410;--good:#1D8A57;--good-soft:#1D8A571A;--bad:#BF3F39;--bad-soft:#BF3F391A;
+  --f-display:"Barlow Condensed","Arial Narrow",sans-serif;--f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;color-scheme:light}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.45;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(24px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.wrap{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.doc{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;font-size:14px;overflow-x:auto}
+.head{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:3px solid var(--fg);padding-bottom:14px}
+.biz b{font-family:var(--f-display);font-size:22px;letter-spacing:.02em;display:block}
+.biz p,.meta p{margin:0;color:var(--muted);font-size:13px}
+.logo{max-height:56px;max-width:160px;display:block;margin-bottom:6px;object-fit:contain}
+.meta{text-align:right}
+.kind{font-family:var(--f-display);font-weight:700;font-size:26px;letter-spacing:.08em;color:var(--accent)}
+.mono{font-family:var(--f-mono);font-size:12.5px;color:var(--muted)}
+.to{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-block:14px}
+.to small{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);display:block;margin-bottom:2px}
+.to p{margin:0;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;min-width:300px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+td{padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.r{text-align:right;white-space:nowrap}
+.tot{margin-left:auto;width:min(100%,280px);padding-top:10px;display:flex;flex-direction:column;gap:4px;font-variant-numeric:tabular-nums}
+.tot div{display:flex;justify-content:space-between;gap:10px}
+.grand{font-family:var(--f-display);font-weight:700;font-size:24px;border-top:2px solid var(--fg);padding-top:6px;margin-top:4px}
+.dep{color:var(--accent);font-weight:700}
+.notes{margin-top:16px;font-size:13px;color:var(--muted);white-space:pre-wrap}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px}
+h1{font-family:var(--f-display);font-size:28px;margin:0;line-height:1.1;text-wrap:balance}
+h2{font-family:var(--f-display);font-size:22px;margin:0}
+label{font-size:14px;font-weight:600;color:var(--muted)}
+.input{width:100%;min-height:50px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff}
+.input:focus{border-color:var(--accent);outline:none}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:15px;color:var(--fg);font-weight:500}
+.check input{width:22px;height:22px;margin-top:1px;accent-color:var(--accent);flex:none}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.btn{flex:1 1 150px;min-height:52px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:700;font-size:16px;cursor:pointer}
+.btn.primary{background:var(--good);border-color:var(--good);color:#fff}
+.btn.ghost{color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.err{color:var(--bad);font-size:14.5px;margin:0}
+.done{border-left:5px solid var(--good)}
+.done.no{border-left-color:var(--bad)}
+.muted{color:var(--muted)}
+.foot{font-size:12.5px;color:var(--muted);text-align:center}
+.center{text-align:center;padding:40px 16px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="center muted">Loading your estimate…</div></div>
+<script>
+(function(){
+"use strict";
+const SB_URL='https://hpzkqkzezexadxtpvbgq.supabase.co';
+const SB_KEY='sb_publishable_GnIs8TH7qyCbAXikhlH1_g_SBP8laDB';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const USD=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
+const money=n=>USD.format(Math.round((+n||0)*100)/100);
+const fdate=t=>new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+const token=new URLSearchParams(location.search).get('t')||'';
+let data=null;
+
+async function rpc(fn,body){
+  let r;
+  try{r=await fetch(SB_URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)})}
+  catch(e){throw new Error('No connection. Check your internet and try again.')}
+  const txt=await r.text();let d=null;try{d=txt?JSON.parse(txt):null}catch(e){d=txt}
+  if(!r.ok){const m=(d&&(d.message||d.msg||d.error))||'';throw new Error(m)}
+  return d;
+}
+function safeLogo(u){return /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(u||'')?u:''}
+function docHTML(d){
+  const b=d.biz||{},c=d.client||{},t=d.totals||{};
+  const logo=safeLogo(b.logo);
+  return `<div class="doc">
+  <div class="head"><div class="biz">${logo?`<img class="logo" src="${logo}" alt="">`:''}<b>${esc(b.name)}</b><p>${[b.phone,b.email].filter(Boolean).map(esc).join(' · ')}</p><p>${[b.address,b.license].filter(Boolean).map(esc).join(' · ')}</p></div>
+  <div class="meta"><div class="kind">ESTIMATE</div><div class="mono">#${esc(d.num)}${d.rev>1?` · Rev ${esc(d.rev)}`:''}</div><p>${fdate(d.date)}</p><p>Valid until ${fdate(d.validUntil)}</p></div></div>
+  <div class="to"><div><small>Prepared for</small><b>${esc(c.name)}</b><p>${[c.address,c.phone,c.email].filter(Boolean).map(esc).join('<br>')}</p></div><div style="text-align:right"><small>Job</small><b>${esc(d.title)}</b></div></div>
+  <table><thead><tr><th>Description</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Amount</th></tr></thead><tbody>
+  ${(d.lines||[]).map(l=>`<tr><td>${esc(l.desc)}</td><td class="r">${esc(l.qty)}${l.unit?' '+esc(l.unit):''}</td><td class="r">${money(l.price)}</td><td class="r">${money(l.amount)}</td></tr>`).join('')}
+  </tbody></table>
+  <div class="tot"><div><span>Subtotal</span><span>${money(t.sub)}</span></div>
+  ${t.disc?`<div><span>${esc(d.discountLabel||'Discount')}</span><span>−${money(t.disc)}</span></div>`:''}
+  ${t.tax?`<div><span>${esc(d.taxLabel||'Tax')}</span><span>${money(t.tax)}</span></div>`:''}
+  <div class="grand"><span>Total</span><span>${money(t.total)}</span></div>
+  ${t.deposit>0?`<div class="dep"><span>${esc(d.depositLabel||'Deposit')}</span><span>${money(t.deposit)}</span></div>`:''}</div>
+  ${d.notes?`<div class="notes">${esc(d.notes)}</div>`:''}${d.terms?`<div class="notes">${esc(d.terms)}</div>`:''}
+  </div>`;
+}
+function render(){
+  const app=$('#app');
+  if(!data){app.innerHTML=`<div class="card center"><h1>We couldn't find this estimate</h1><p class="muted">The link may be incomplete. Check the text you received, or contact the business that sent it.</p></div>`;return}
+  const d=data.doc,b=d.biz||{};
+  let respond='';
+  if(data.status==='approved'){respond=`<div class="card done"><h2>Approved</h2><p>${esc(data.customer_name)} approved this estimate on ${fdate(data.responded_at)}. ${esc(b.name)} has been notified and will be in touch to schedule.</p></div>`}
+  else if(data.status==='declined'){respond=`<div class="card done no"><h2>Declined</h2><p>${esc(data.customer_name)} declined this estimate on ${fdate(data.responded_at)}. If you change your mind, contact ${esc(b.name)}${b.phone?' at '+esc(b.phone):''}.</p></div>`}
+  else{
+    const expired=Date.now()>d.validUntil;
+    respond=`<form class="card" id="resp" novalidate>
+      <h2>Ready to go ahead?</h2>
+      ${expired?`<p class="err">This estimate passed its valid date (${fdate(d.validUntil)}). You can still approve it, and ${esc(b.name)} will confirm the price with you.</p>`:''}
+      <div style="display:flex;flex-direction:column;gap:5px"><label for="nm">Your full name</label><input class="input" id="nm" autocomplete="name" maxlength="80" value="${esc((d.client||{}).name||'')}"></div>
+      <label class="check"><input type="checkbox" id="ok">I approve this estimate for ${money((d.totals||{}).total)} and agree to the terms above.</label>
+      <p class="err" id="err" role="alert"></p>
+      <div class="row"><button class="btn primary" type="submit" id="yes">Approve estimate</button><button class="btn ghost" type="button" id="no">Decline</button></div>
+      <p class="muted" style="font-size:13.5px;margin:0">Questions first? Contact ${esc(b.name)}${b.phone?' at <b>'+esc(b.phone)+'</b>':''}.</p>
+    </form>`;
+  }
+  app.innerHTML=`<h1>Estimate from ${esc(b.name)}</h1>${docHTML(d)}${respond}<p class="foot">Sent with Closer</p>`;
+  const f=$('#resp');if(!f)return;
+  f.addEventListener('submit',e=>{e.preventDefault();send('approved')});
+  $('#no').addEventListener('click',()=>{
+    const btn=$('#no');
+    if(btn.dataset.sure){send('declined');return}
+    btn.dataset.sure='1';btn.textContent='Tap again to decline';
+  });
+}
+async function send(status){
+  const name=($('#nm').value||'').trim(),err=$('#err');
+  if(name.length<2){err.textContent='Type your full name.';$('#nm').focus();return}
+  if(status==='approved'&&!$('#ok').checked){err.textContent='Check the box to confirm you approve.';return}
+  err.textContent='';$('#yes').disabled=true;$('#no').disabled=true;
+  try{
+    await rpc('respond_shared_estimate',{p_token:token,p_name:name,p_status:status});
+    data.status=status;data.customer_name=name;data.responded_at=new Date().toISOString();render();window.scrollTo(0,document.body.scrollHeight);
+  }catch(e){
+    $('#yes').disabled=false;$('#no').disabled=false;
+    err.textContent=/not open/i.test(e.message)?'This estimate was already answered. Refresh the page to see its status.':(e.message&&!/^\s*$/.test(e.message)&&!/[{}]/.test(e.message)?e.message:'Something went wrong. Please try again.');
+  }
+}
+(async function(){
+  if(!token||token.length<10){data=null;render();return}
+  try{data=await rpc('get_shared_estimate',{p_token:token});render()}
+  catch(e){$('#app').innerHTML=`<div class="card center"><h1>Couldn't load the estimate</h1><p class="muted">${esc(e.message||'Please check your connection and try again.')}</p><div class="row"><button class="btn" onclick="location.reload()">Try again</button></div></div>`}
+})();
+})();
+</script>
+</body>
+</html>
