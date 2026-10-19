@@ -571,6 +571,7 @@ const SKEY='closer.session';
 const cloudOK=!inFrame;
 let session=null,syncState='off',pushTimer=null,syncErr='',lastSynced=null,recoveryMode=false,confirmDeleteAcct=false;
 const PAY_LINK='https://buy.stripe.com/6oU6oG1Ra4XB4HqbB29ws00';
+const PORTAL_LINK='https://billing.stripe.com/p/login/6oU6oG1Ra4XB4HqbB29ws00';
 const FREE_LIMIT=5,PRO_PRICE='$12';
 let isPro=false;
 const PUBLIC_SITE='https://kamwebdes.github.io/closer/';
@@ -826,7 +827,8 @@ function renderUpgrade(){
   const u=usedThisMonth();
   let h=`<div class="stack view-in"><div><button class="linkbtn" data-act="nav" data-v="home" style="display:inline-flex;align-items:center;gap:4px">${ic('back')}Home</button>
   <h1 style="margin-top:4px">Closer Pro</h1></div>`;
-  if(isPro){return h+`<div class="card stack" style="gap:10px;border-left:4px solid var(--good)"><b>You're on Closer Pro.</b><p class="muted">Unlimited estimates, approval links and automatic backup. Thanks for supporting Closer.</p><p class="muted" style="font-size:14px">To change or cancel your plan, send a message from the support page.</p></div></div>`}
+  if(isPro){return h+`<div class="card stack" style="gap:10px;border-left:4px solid var(--good)"><b>You're on Closer Pro.</b><p class="muted">Unlimited estimates, approval links and automatic backup. Thanks for supporting Closer.</p><a class="btn" style="text-decoration:none" href="${esc(PORTAL_LINK+(session?'?prefilled_email='+encodeURIComponent(session.user.email):''))}" target="_blank" rel="noopener">Manage subscription</a>
+    <p class="muted" style="font-size:13.5px">Update your card, download receipts or cancel. Stripe emails you a code to sign in, using the email you paid with. If you cancel, Pro stays on until the end of the month you paid for.</p></div></div>`}
   h+=`${u>=FREE_LIMIT?`<div class="notice">You've used all ${FREE_LIMIT} free estimates this month. Upgrade to keep going, or wait until the 1st for ${FREE_LIMIT} more.</div>`:''}
   <div class="card stack" style="gap:14px">
     <div style="display:flex;align-items:baseline;gap:8px"><span style="font-family:var(--f-display);font-size:44px;font-weight:700;line-height:1">${PRO_PRICE}</span><span class="muted">per month · cancel anytime</span></div>
