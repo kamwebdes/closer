@@ -144,3 +144,33 @@ end;
 $$;
 revoke all on function public.submit_support(text, text, text) from public;
 grant execute on function public.submit_support(text, text, text) to anon, authenticated;
+
+-- 6. Usage limits for the AI support assistant (keeps costs capped).
+create table if not exists public.chat_usage (
+  day     date not null default current_date,
+  visitor text not null,
+  n       int  not null default 0,
+  primary key (day, visitor)
+);
+alter table public.chat_usage enable row level security;
+revoke all on public.chat_usage from anon, authenticated;
+
+create or replace function public.bump_chat_usage(p_visitor text, p_visitor_limit int, p_site_limit int)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare v int; s int;
+begin
+  delete from public.chat_usage where day < current_date - 7;
+  select coalesce(sum(n), 0) into s from public.chat_usage where day = current_date;
+  if s >= p_site_limit then return false; end if;
+  insert into public.chat_usage(day, visitor, n) values (current_date, p_visitor, 1)
+  on conflict (day, visitor) do update set n = public.chat_usage.n + 1
+  returning n into v;
+  return v <= p_visitor_limit;
+end;
+$$;
+revoke all on function public.bump_chat_usage(text, int, int) from public, anon, authenticated;
+grant execute on function public.bump_chat_usage(text, int, int) to service_role;
