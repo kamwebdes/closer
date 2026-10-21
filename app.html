@@ -14,15 +14,6 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
-:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
-body{margin:0}img{max-width:100%}[hidden]{display:none!important}html{-webkit-text-size-adjust:100%}
-@media print{.top,.nav,.toast,.row,.stickybar,.banner,.notice,.btn,.sec-head,p.muted,.linkbtn,.pill,h1{display:none!important}.app{padding:0}.doc-wrap{border:0;overflow:visible}body{background:#fff;padding:0}}
-</style>
-<title>Closer Estimates</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<style>
 /* Layout: one-column field tool for a phone on a job site. Big targets, high contrast, money always visible. The estimate itself is white paper in both themes. */
 :root{
   --bg:#F3F4F6; --surface:#FFFFFF; --raised:#ECEEF2; --line:#DCE0E6; --fg:#131921; --muted:#596373; --dim:#8892A1;
@@ -192,8 +183,7 @@ textarea.input{min-height:84px;resize:vertical}
 @media (max-width:400px){.line-nums{grid-template-columns:60px 80px 1fr auto}.grid3{grid-template-columns:1fr 1fr}}
 @media (prefers-reduced-motion:no-preference){.view-in{animation:fade .18s ease-out}@keyframes fade{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}}
 </style>
-</head>
-<body>
+
 <div class="app">
   <header class="top"><div class="brand"><b>C</b>Closer</div><div id="topright"></div></header>
   <main id="view"></main>
@@ -239,7 +229,7 @@ function seed(){
   return {v:1,sample:true,biz,editing:null,
     items:[{id:uid(),desc:'Labor',unit:'hr',price:75,taxable:false},{id:uid(),desc:'Shingle repair',unit:'sq',price:325,taxable:true},{id:uid(),desc:'Drip edge',unit:'ft',price:4.5,taxable:true},{id:uid(),desc:'Debris removal & haul-away',unit:'job',price:250,taxable:false},{id:uid(),desc:'Permit fee',unit:'ea',price:150,taxable:false}],
     quotes:[
-      q(1001,{name:'Maria Lopez',phone:'(305) 555-0198',email:'',address:'SW 296th St'},'Roof leak repair, back porch',[line('Shingle repair',2,'sq',325),line('Labor',6,'hr',75,false),line('Debris removal & haul-away',1,'job',250,false)],'sent',5),
+      q(1001,{name:'Maria Lopez',phone:'(305) 555-0198',email:'',address:'SW 296th St'},'Roof leak repair, back porch',[line('Shingle repair',2,'sq',325),line('Labor',6,'hr',75,false),line('Debris removal & haul-away',1,'job',250,false)],'sent',5,{views:2,lastViewed:now-1*DAY}),
       q(1002,{name:'Derek Chen',phone:'(305) 555-0117',email:'',address:''},'Gutter replacement, front of house',[line('Seamless aluminum gutter',64,'ft',9.5),line('Downspouts',3,'ea',85),line('Labor',5,'hr',75,false)],'sent',1),
       q(1003,{name:'Angela Brooks',phone:'(305) 555-0133',email:'',address:''},'Fascia board replacement',[line('Fascia board',40,'ft',12),line('Labor',8,'hr',75,false),line('Paint & primer',1,'job',180)],'won',9,{decidedAt:now-6*DAY}),
       q(1004,{name:'Tom Reyes',phone:'',email:'',address:''},'Full roof inspection & report',[line('Inspection',1,'job',225,false)],'draft',0)
@@ -291,9 +281,25 @@ const sig=()=>S.biz.owner||S.biz.name;
 function sendMsg(q){const t=calc(q);return `Hi ${first(q.client.name)}, here's your estimate #${q.num} for ${q.title}: ${money(t.total)} total${t.deposit>0?`, with a ${money(t.deposit)} deposit to get you on the schedule`:''}. Let me know if you have any questions. – ${sig()}, ${S.biz.name}`}
 function followMsg(q){const n=q.followUps.length,t=money(calc(q).total);
   if(isExpired(q))return `Hi ${first(q.client.name)}, the estimate for ${q.title} (${t}) has passed its valid date. If you're still interested, I'm happy to confirm the price or update it for you. – ${sig()}`;
+  if(q.shareToken&&q.views===0&&n===0)return `Hi ${first(q.client.name)}, just making sure my estimate for ${q.title} came through. Here's the link again: ${approveLink(q.shareToken)} – ${sig()}`;
+  if(q.views>0&&n===0)return `Hi ${first(q.client.name)}, following up on the ${q.title} estimate (${t}). If you have questions about the price or what's included, I'm happy to walk you through it or look at options to fit your budget. – ${sig()}`;
+  if(q.views>0&&n===1)return `Hi ${first(q.client.name)}, checking back on your ${q.title} estimate. If the total is the holdup, I can break it into phases or adjust the scope. I also have openings coming up. – ${sig()}`;
   if(n===0)return `Hi ${first(q.client.name)}, just checking in on the estimate I sent for ${q.title} (${t}). Happy to answer questions or adjust anything. – ${sig()}`;
   if(n===1)return `Hi ${first(q.client.name)}, wanted to follow up on your ${q.title} estimate. I have openings coming up and can get you scheduled soon. Want me to hold a spot? – ${sig()}`;
   return `Hi ${first(q.client.name)}, I'll close out the ${q.title} estimate for now. If you'd like to move forward later, just reply here and I'll take care of you. – ${sig()}`;}
+const TRADES={
+  roofing:{label:'Roofing',items:[['Tear-off & haul away','sq',120,false],['Architectural shingles, installed','sq',450,true],['Synthetic underlayment','sq',45,true],['Drip edge','ft',3.5,true],['Ridge vent','ft',12,true],['Decking replacement','sheet',95,true],['Flashing repair','ea',250,true],['Dumpster','ea',550,false]]},
+  painting:{label:'Painting',items:[['Interior walls','sq ft',2.5,false],['Ceilings','sq ft',1.5,false],['Trim & baseboard','ft',2,false],['Doors','ea',85,false],['Exterior siding','sq ft',3,false],['Prep, patch & caulk','hr',60,false],['Paint & supplies','gal',55,true]]},
+  handyman:{label:'Handyman',items:[['Labor','hr',75,false],['Trip charge','ea',50,false],['Drywall patch','ea',150,false],['Light fixture install','ea',95,false],['Interior door install','ea',225,false],['TV mount','ea',120,false],['Materials','ea',1,true]]},
+  landscaping:{label:'Landscaping',items:[['Mowing & edging','visit',55,false],['Mulch, installed','yd',85,true],['Hedge & shrub trimming','hr',60,false],['Sod, installed','sq ft',2,true],['Leaf cleanup','hr',55,false],['Plants','ea',35,true],['Haul away','load',125,false]]},
+  flooring:{label:'Flooring',items:[['Vinyl plank, installed','sq ft',3.5,true],['Tile, installed','sq ft',12,true],['Remove old flooring','sq ft',1.5,false],['Subfloor prep','sq ft',1.25,false],['Baseboard','ft',3,true],['Transitions','ea',45,true]]},
+  washing:{label:'Pressure washing',items:[['House wash','sq ft',0.3,false],['Driveway & walks','sq ft',0.2,false],['Deck cleaning','sq ft',0.5,false],['Deck stain','sq ft',1.5,true],['Gutter cleaning','ft',1.25,false],['Window cleaning','ea',8,false]]}
+};
+function loadTrade(k){const t=TRADES[k];if(!t)return 0;const have=new Set(S.items.map(i=>i.desc.toLowerCase()));let n=0;
+  t.items.forEach(([desc,unit,price,taxable])=>{if(!have.has(desc.toLowerCase())){S.items.push({id:uid(),desc,unit,price,taxable});n++}});
+  S.biz.trade=k;return n}
+function tradePicker(){return `<div class="chips">${Object.entries(TRADES).map(([k,t])=>`<button class="chip add" data-act="trade" data-k="${k}">${S.biz.trade===k?ic('check'):'+ '}${esc(t.label)}</button>`).join('')}</div>`}
+function viewsLine(q){return q.views>0?`opened ${q.views}×`:(q.views===0&&q.shareToken?'link not opened yet':'')}
 function smsHref(phone,body){const p=(phone||'').replace(/[^\d+]/g,'');return `sms:${p}${/iPhone|iPad|iPod/.test(navigator.userAgent)?'&':'?'}body=${encodeURIComponent(body)}`}
 
 /* ---------- toast & clipboard ---------- */
@@ -325,7 +331,8 @@ function customers(){
 /* ---------- home ---------- */
 function followCard(q){
   const t=calc(q).total,n=q.followUps.length,exp=isExpired(q);
-  const status=n?`followed up ${n}× · last ${ago(lastTouch(q))}`:`sent ${ago(q.sentAt)}, no answer`;
+  const vl=viewsLine(q);
+  const status=(n?`followed up ${n}× · last ${ago(lastTouch(q))}`:`sent ${ago(q.sentAt)}`)+(q.views>0?` · <span style="color:var(--accent);font-weight:700;white-space:nowrap">opened ${q.views}×, no answer</span>`:vl?` · ${vl}`:n?'':', no answer');
   if(n>=3)return `<div class="card fu"><div class="fu-top"><span><b>${esc(q.client.name)}</b><br><span class="muted" style="font-size:14px">${esc(q.title)} · ${status}</span></span><span class="fu-amt">${money(t)}</span></div>
     <p class="muted" style="font-size:14.5px">You've followed up ${n} times with no answer. Most jobs that go this quiet don't come back, so it's usually time to close it out.</p>
     <div class="row"><button class="btn danger sm" data-act="lost" data-id="${q.id}">Close it out (lost)</button><button class="btn sm" data-act="snooze" data-id="${q.id}">Remind me in 2 weeks</button></div>
@@ -420,7 +427,7 @@ function renderView(){
   let h=`<div class="stack view-in">
   <div><button class="linkbtn" data-act="nav" data-v="quotes" style="display:inline-flex;align-items:center;gap:4px">${ic('back')}Estimates</button>
   <div class="sec-head" style="margin-top:4px"><h1>${esc(q.client.name||'No name')}</h1><span class="pill ${st}">${STATUS_LABEL[st]}</span></div>
-  <p class="muted">#${q.num} · ${esc(q.title)}${q.sentAt?` · sent ${ago(q.sentAt)}`:''}${q.followUps.length?` · followed up ${q.followUps.length}×`:''}</p></div>
+  <p class="muted">#${q.num} · ${esc(q.title)}${q.sentAt?` · sent ${ago(q.sentAt)}`:''}${q.followUps.length?` · followed up ${q.followUps.length}×`:''}${q.status==='sent'&&viewsLine(q)?` · ${viewsLine(q)}${q.lastViewed?' (last '+ago(q.lastViewed)+')':''}`:''}</p></div>
   ${q.approvedBy?`<div class="notice" style="background:var(--good-soft)"><b>${esc(q.approvedBy)}</b> approved this estimate through your link on ${fdate(q.decidedAt)}.</div>`:''}
   ${q.declinedBy?`<div class="notice" style="background:var(--bad-soft)"><b>${esc(q.declinedBy)}</b> declined this estimate through your link on ${fdate(q.decidedAt)}.</div>`:''}
   ${cloudOK&&!session&&(q.status==='draft'||q.status==='sent')?`<div class="banner"><span>Sign in to send ${esc(first(q.client.name))} a link where they can approve this estimate.</span><button data-act="nav" data-v="settings">Sign in</button></div>`:''}
@@ -458,6 +465,7 @@ function renderEdit(){
   <section class="sec"><h3>Line items</h3>
     <div id="lines" class="stack" style="gap:10px"></div>
     <div class="chips">${S.items.map(it=>`<button class="chip add" data-act="add-item" data-id="${it.id}">+ ${esc(it.desc)}</button>`).join('')}<button class="chip add" data-act="add-line">+ Blank line</button></div>
+    ${S.items.length?'':`<p class="muted" style="font-size:14px">Load starter items for your trade (you can change the prices in Settings):</p>${tradePicker()}`}
   </section>
   <section class="sec" id="pricing"></section>
   <div id="edit-msg"></div>
@@ -511,6 +519,7 @@ function renderEditMsg(err){
 }
 
 /* ---------- settings ---------- */
+let editItem=null;
 function renderSettings(){
   const b=S.biz;
   return `<div class="stack view-in"><h1>Settings</h1>${banners()}
@@ -536,15 +545,17 @@ function renderSettings(){
     <p class="err" id="biz-err" role="alert"></p>
     <button class="btn primary" type="submit">Save business details</button>
   </form>
-  <section class="sec"><h3>Saved items</h3><p class="muted" style="font-size:14px;margin-top:-4px">One-tap buttons when you build an estimate.</p>
-    <div class="list">${S.items.length?S.items.map(it=>`<div class="qrow" style="grid-template-columns:1fr auto auto;align-items:center"><span class="who">${esc(it.desc)}${it.taxable===false?' <span class="muted" style="font-size:13px;font-weight:500">· not taxed</span>':''}</span><span class="num muted">${money(it.price)}${it.unit?'/'+esc(it.unit):''}</span><button class="xbtn" style="margin:0;align-self:center" data-act="del-item" data-id="${it.id}" aria-label="Remove ${esc(it.desc)}">×</button></div>`).join(''):'<div class="empty">No saved items yet.</div>'}</div>
+  <section class="sec"><h3>Saved items</h3><p class="muted" style="font-size:14px;margin-top:-4px">One-tap buttons when you build an estimate. Tap an item to change its price.</p>
+    <p class="muted" style="font-size:14px;margin:0">Starter items for your trade:</p>${tradePicker()}
+    <p class="muted" style="font-size:13px;margin:0">Starter prices are rough averages. Change them to what you charge.</p>
+    <div class="list">${S.items.length?S.items.map(it=>`<div class="qrow" style="grid-template-columns:1fr auto auto;align-items:center"><span class="who" role="button" tabindex="0" style="cursor:pointer" data-act="edit-item" data-id="${it.id}">${esc(it.desc)}${it.taxable===false?' <span class="muted" style="font-size:13px;font-weight:500">· not taxed</span>':''}</span><span class="num muted">${money(it.price)}${it.unit?'/'+esc(it.unit):''}</span><button class="xbtn" style="margin:0;align-self:center" data-act="del-item" data-id="${it.id}" aria-label="Remove ${esc(it.desc)}">×</button></div>`).join(''):'<div class="empty">No saved items yet.</div>'}</div>
     <form id="itemform" class="card stack" style="gap:10px" novalidate>
-      <div class="field"><label for="i-desc">Item</label><input class="input" id="i-desc" placeholder="e.g. Pressure washing" maxlength="80"></div>
-      <div class="grid2"><div class="field"><label for="i-unit">Unit</label><input class="input" id="i-unit" placeholder="hr, ft, sq, ea, job" maxlength="12"></div>
-      <div class="field"><label for="i-price">Rate $</label><input class="input num" id="i-price" type="number" inputmode="decimal" step="0.01" min="0"></div></div>
-      <label class="taxbox"><input type="checkbox" id="i-tax" checked>Taxable</label>
+      <div class="field"><label for="i-desc">Item</label><input class="input" id="i-desc" placeholder="e.g. Pressure washing" maxlength="80" value="${esc(editItem?editItem.desc:'')}"></div>
+      <div class="grid2"><div class="field"><label for="i-unit">Unit</label><input class="input" id="i-unit" placeholder="hr, ft, sq, ea, job" maxlength="12" value="${esc(editItem?editItem.unit:'')}"></div>
+      <div class="field"><label for="i-price">Rate $</label><input class="input num" id="i-price" type="number" inputmode="decimal" step="0.01" min="0" value="${editItem?editItem.price:''}"></div></div>
+      <label class="taxbox"><input type="checkbox" id="i-tax" ${!editItem||editItem.taxable!==false?'checked':''}>Taxable</label>
       <p class="err" id="item-err" role="alert"></p>
-      <button class="btn" type="submit">${ic('plus')}Add saved item</button>
+      <div class="row">${editItem?`<button class="btn primary" type="submit">Save changes</button><button class="btn" type="button" data-act="edit-item-cancel">Cancel</button>`:`<button class="btn" type="submit">${ic('plus')}Add saved item</button>`}</div>
     </form>
   </section>
   <section class="sec"><h3>Backup and restore</h3>
@@ -662,7 +673,18 @@ async function checkApprovals(){
     if(r.status==='approved'){q.status='won';q.approvedBy=r.customer_name;q.declinedBy=null;msgs.push(`${r.customer_name} approved #${q.num} (${money(calc(q).total)})`)}
     else{q.status='lost';q.declinedBy=r.customer_name;q.approvedBy=null;msgs.push(`${r.customer_name} declined #${q.num}`)}
   }
-  if(msgs.length){save();if(view!=='edit')render();toast(msgs.join(' · '))}
+  let changed=false;
+  try{
+    const open=await api('/rest/v1/shared_estimates?select=token,quote_id,view_count,last_viewed_at&status=eq.open');
+    for(const r of open||[]){
+      const q=S.quotes.find(x=>x.id===r.quote_id&&x.shareToken===r.token);
+      if(!q||q.status!=='sent'||typeof r.view_count!=='number')continue;
+      if(q.views!==r.view_count){if(typeof q.views==='number'&&r.view_count>q.views)msgs.push(`${first(q.client.name)||'Your customer'} opened estimate #${q.num}`);q.views=r.view_count;changed=true}
+      const lv=r.last_viewed_at?Date.parse(r.last_viewed_at):null;if(q.lastViewed!==lv){q.lastViewed=lv;changed=true}
+    }
+  }catch(e){/* opened tracking needs setup.sql section 9; skip quietly until then */}
+  if(msgs.length||changed){save();if(view!=='edit')render()}
+  if(msgs.length)toast(msgs.join(' · '));
 }
 function randomToken(){const b=new Uint8Array(18);crypto.getRandomValues(b);return btoa(String.fromCharCode.apply(null,b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function approveLink(t){return siteURL()+'approve.html?t='+t}
@@ -952,6 +974,9 @@ const A={
   'del-no'(){confirmDel=false;render()},
   'del-yes'(el){const i=S.quotes.findIndex(q=>q.id===el.dataset.id);const q=S.quotes[i];S.quotes.splice(i,1);save();go('quotes');toast(`Deleted #${q.num}`,()=>{S.quotes.splice(i,0,q);save();render()})},
   filter(el){filter=el.dataset.f;render()},
+  trade(el){const k=el.dataset.k,n=loadTrade(k);save();render();toast(n?`Added ${n} ${TRADES[k].label.toLowerCase()} items`:`${TRADES[k].label} items are already saved`)},
+  'edit-item'(el){const it=S.items.find(x=>x.id===el.dataset.id);if(!it)return;editItem=Object.assign({},it);render();const f=$('#i-desc');if(f){f.scrollIntoView({block:'center'});f.focus()}},
+  'edit-item-cancel'(){editItem=null;render()},
   'dismiss-sample'(){S.sample=false;save();render()},
   'del-item'(el){const i=S.items.findIndex(x=>x.id===el.dataset.id);const it=S.items[i];S.items.splice(i,1);save();render();toast(`Removed “${it.desc}”`,()=>{S.items.splice(i,0,it);save();render()})},
   'logo-remove'(){S.biz.logo='';save();render();toast('Logo removed')},
@@ -1023,7 +1048,10 @@ document.addEventListener('submit',ev=>{
     const d=$('#i-desc').value.trim(),u=$('#i-unit').value.trim(),p=parseFloat($('#i-price').value),err=$('#item-err');
     if(!d){err.textContent='Name the item.';return}
     if(!(p>=0)){err.textContent='Add a rate (0 or more).';return}
-    S.items.push({id:uid(),desc:d,unit:u,price:p,taxable:$('#i-tax').checked});save();render();toast(`Saved “${d}”`);
+    const it={desc:d,unit:u,price:p,taxable:$('#i-tax').checked};
+    const ex=editItem&&S.items.find(x=>x.id===editItem.id);
+    if(ex){Object.assign(ex,it);editItem=null}else S.items.push(Object.assign({id:uid()},it));
+    save();render();toast(`Saved “${d}”`);
   }
 });
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&view!=='edit'){render();if(session)syncNow()}});
@@ -1036,5 +1064,6 @@ handleAuthHash().then(h=>{if(!h&&session)syncNow()});
 <script>
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 </script>
+<script data-goatcounter="https://closerapp.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </body>
 </html>

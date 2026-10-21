@@ -30,9 +30,32 @@ textarea.input{min-height:140px;resize:vertical}
 details{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 summary{font-weight:600;cursor:pointer}
 details p{margin-top:8px;color:var(--muted)}
+.chat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.log{display:flex;flex-direction:column;gap:10px;max-height:420px;overflow-y:auto}
+.bub{max-width:88%;padding:10px 13px;border-radius:14px;font-size:16px;white-space:pre-wrap;overflow-wrap:anywhere}
+.bub.me{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+.bub.ai{align-self:flex-start;background:#EEF0F3;border-bottom-left-radius:4px}
+.bub.typing{color:var(--muted);font-style:italic}
+.ask{display:flex;gap:8px}
+.ask .input{flex:1;min-width:0}
+.ask .btn{flex:none;padding:0 18px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:#fff;border-radius:99px;padding:7px 12px;font:inherit;font-size:14.5px;cursor:pointer;color:var(--fg)}
+.small{font-size:13px;color:var(--muted)}
 </style></head><body><div class="wrap"><a class="back" href="./">← Back to Closer</a>
 <h1>Help and support</h1>
-<p class="muted">Quick answers first. If you still need help, send us a message below.</p>
+<p class="muted">Ask the assistant anything about using Closer. If it can't help, a person will.</p>
+<section class="chat" aria-label="Support assistant">
+  <div class="log" id="log" aria-live="polite"><div class="bub ai">Hi! I can help with building estimates, approval links, follow-ups, your account and more. What do you need?</div></div>
+  <div class="chips" id="starters">
+    <button class="chip" type="button">How do approval links work?</button>
+    <button class="chip" type="button">How do I add my logo?</button>
+    <button class="chip" type="button">Why isn't labor taxed?</button>
+  </div>
+  <form class="ask" id="askf" autocomplete="off"><input class="input" id="q" maxlength="1000" placeholder="Type your question" aria-label="Your question"><button class="btn" type="submit" id="qbtn">Ask</button></form>
+  <p class="small">Answers come from an AI assistant and can be wrong. Don't share passwords or card numbers.</p>
+</section>
+<h2>Common questions</h2>
 <details><summary>Do I need an account?</summary><p>No. Closer works without one, and your estimates stay on your phone. An account backs them up, keeps them in sync across devices, and lets you send customers approval links.</p></details>
 <details><summary>How do approval links work?</summary><p>Open an estimate and tap Send approval link, then text the message to your customer. They see a clean copy of the estimate, type their name, and tap Approve or Decline. Closer marks the estimate won or lost on its own.</p></details>
 <details><summary>I changed an estimate after sending the link.</summary><p>Open the estimate and tap "Update link with latest version." Your customer sees the new version at the same link.</p></details>
@@ -66,4 +89,37 @@ f.addEventListener('submit',async e=>{
 });
 })();
 </script>
-</div></body></html>
+<script>
+(function(){
+const FN='https://hpzkqkzezexadxtpvbgq.supabase.co/functions/v1/support-chat';
+const KEY='sb_publishable_GnIs8TH7qyCbAXikhlH1_g_SBP8laDB';
+const log=document.getElementById('log'),f=document.getElementById('askf'),q=document.getElementById('q'),btn=document.getElementById('qbtn');
+const history=[];let busy=false;
+function add(cls,text){const d=document.createElement('div');d.className='bub '+cls;d.textContent=text;log.appendChild(d);log.scrollTop=log.scrollHeight;return d}
+function handoff(){
+  const m=document.getElementById('m');
+  if(m&&!m.value){m.value='Question for the team:\n'+history.filter(x=>x.role==='user').map(x=>'- '+x.content).join('\n')}
+  const form=document.getElementById('f');if(form){form.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>{const e=document.getElementById('e');if(e)e.focus()},400)}
+}
+async function ask(text){
+  if(busy||!text.trim())return;
+  busy=true;btn.disabled=true;document.getElementById('starters').hidden=true;
+  add('me',text);history.push({role:'user',content:text});
+  const t=add('ai typing','Thinking…');
+  try{
+    const r=await fetch(FN,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY},body:JSON.stringify({messages:history.slice(-12)})});
+    let d={};try{d=await r.json()}catch(x){}
+    if(!r.ok||!d.reply)throw new Error(d.error||'unavailable');
+    t.className='bub ai';t.textContent=d.reply;history.push({role:'assistant',content:d.reply});
+    if(d.handoff){const b=document.createElement('button');b.className='chip';b.type='button';b.textContent='Message a person';b.style.alignSelf='flex-start';b.onclick=handoff;log.appendChild(b);log.scrollTop=log.scrollHeight}
+  }catch(e){
+    t.className='bub ai';t.textContent="Sorry, the assistant isn't available right now. Use the message form below and a person will get back to you.";history.pop();
+  }
+  busy=false;btn.disabled=false;q.focus();
+}
+f.addEventListener('submit',e=>{e.preventDefault();const v=q.value;q.value='';ask(v)});
+document.querySelectorAll('#starters .chip').forEach(c=>c.addEventListener('click',()=>ask(c.textContent)));
+})();
+</script>
+</div><script data-goatcounter="https://closerapp.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body></html>

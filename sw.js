@@ -1,5 +1,5 @@
 // Closer offline support. Bump VERSION whenever you upload changed files so phones pick them up.
-const VERSION = 'closer-v10';
+const VERSION = 'closer-v12';
 const SHELL = ['./', 'index.html', 'app.html', 'approve.html', 'privacy.html', 'support.html', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
@@ -20,6 +20,8 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   // Never cache account or database traffic.
   if (url.hostname.endsWith('.supabase.co')) return;
+  // Never cache visit counting.
+  if (url.hostname.endsWith('goatcounter.com') || url.hostname === 'gc.zgo.at') return;
   // Pages: network first so updates show up, saved copy when offline.
   if (req.mode === 'navigate') {
     e.respondWith(fetch(req).then(r => {
